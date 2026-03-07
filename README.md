@@ -17,3 +17,66 @@
     https://ubuntu.com/download/server からダウンロードできる。
 
 3. UTMでUbuntu Server 22.04.4をインストール
+
+    ネットワーク設定は「ブリッジモード」を選択すること。
+
+4. パッケージのアップデート
+
+    ```bash
+    sudo apt update
+    sudo apt upgrade -y
+    ```
+
+5. Tailscaleのインストール
+
+    ```bash
+    curl -fsSL https://tailscale.com/install.sh | sh
+    sudo tailscale up
+    ```
+
+    表示されるURLをブラウザで開き、認証を完了する。
+
+6. Gitのインストール
+
+    ```bash
+    sudo apt install -y git
+    ```
+
+7. SSHキーの生成と登録
+
+    SSHキーを生成する。
+
+    ```bash
+    ssh-keygen -t ed25519 -C "your_email@example.com"
+    ```
+
+    公開鍵を表示し、GitHubに登録する。
+
+    ```bash
+    cat ~/.ssh/id_ed25519.pub
+    ```
+
+    表示された公開鍵をコピーし、GitHub の **Settings > SSH and GPG keys > New SSH key** から登録する。
+
+8. このリポジトリをcloneする
+
+    ```bash
+    git clone git@github.com:kagiyama-baking/internal.kagiyama.net.git
+    cd internal.kagiyama.net
+    ```
+
+9. Ansibleのインストール
+
+    ```bash
+    sudo apt install -y pipx
+    pipx install ansible --include-deps
+    pipx ensurepath
+    source ~/.bashrc
+    ```
+
+10. テスト用プレイブックを実行して動作確認
+
+    ```bash
+    cd ansible
+    ansible-playbook site.yml
+    ```

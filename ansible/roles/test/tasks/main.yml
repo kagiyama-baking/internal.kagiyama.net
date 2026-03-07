@@ -1,0 +1,21 @@
+---
+- name: Ansibleの動作確認
+  ansible.builtin.ping:
+
+- name: ホスト名を取得
+  ansible.builtin.command: hostname
+  register: hostname_result
+  changed_when: false
+
+- name: ホスト名を表示
+  ansible.builtin.debug:
+    msg: "ホスト名: {{ hostname_result.stdout }}"
+
+- name: OSバージョンを取得
+  ansible.builtin.command: lsb_release -d
+  register: os_result
+  changed_when: false
+
+- name: OSバージョンを表示
+  ansible.builtin.debug:
+    msg: "OS: {{ os_result.stdout }}"

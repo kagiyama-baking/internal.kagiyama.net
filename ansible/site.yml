@@ -1,0 +1,5 @@
+---
+- name: テスト用プレイブック
+  hosts: local
+  roles:
+    - test
