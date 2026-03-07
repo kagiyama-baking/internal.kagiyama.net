@@ -65,7 +65,14 @@
     cd internal.kagiyama.net                                           # クローンしたリポジトリに移動
     ```
 
-9. Ansibleのインストール
+9. Gitのユーザー設定
+
+    ```bash
+    git config --global user.name "your_name"
+    git config --global user.email "your_email@example.com"
+    ```
+
+10. Ansibleのインストール
 
     ```bash
     sudo apt install -y pipx             # pipxをインストール
@@ -74,13 +81,13 @@
     source ~/.bashrc                     # シェルを再読み込みしてpipxのパスを反映
     ```
 
-10. Makeをインストール
+11. Makeをインストール
 
     ```bash
     sudo apt install -y make # Makefileを使用するために必要
     ```
 
-11. テスト用プレイブックを実行して動作確認
+12. テスト用プレイブックを実行して動作確認
 
     ```bash
     cd ansible # ansibleディレクトリに移動
