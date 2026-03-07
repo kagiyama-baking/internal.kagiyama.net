@@ -61,22 +61,28 @@
 8. このリポジトリをcloneする
 
     ```bash
-    git clone git@github.com:kagiyama-baking/internal.kagiyama.net.git
-    cd internal.kagiyama.net
+    git clone git@github.com:kagiyama-baking/internal.kagiyama.net.git # SSHでクローン
+    cd internal.kagiyama.net                                           # クローンしたリポジトリに移動
     ```
 
 9. Ansibleのインストール
 
     ```bash
-    sudo apt install -y pipx
-    pipx install ansible --include-deps
-    pipx ensurepath
-    source ~/.bashrc
+    sudo apt install -y pipx             # pipxをインストール
+    pipx install ansible --include-deps  # Ansibleとその依存関係をインストール
+    pipx ensurepath                      # パスを通す
+    source ~/.bashrc                     # シェルを再読み込みしてpipxのパスを反映
     ```
 
-10. テスト用プレイブックを実行して動作確認
+10. Makeをインストール
 
     ```bash
-    cd ansible
-    ansible-playbook site.yml
+    sudo apt install -y make # Makefileを使用するために必要
+    ```
+
+11. テスト用プレイブックを実行して動作確認
+
+    ```bash
+    cd ansible # ansibleディレクトリに移動
+    make test  # テスト用プレイブックを実行
     ```
