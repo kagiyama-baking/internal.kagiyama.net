@@ -1,5 +1,12 @@
 ---
 - name: テスト用プレイブック
   hosts: local
+  tags: test
   roles:
     - test
+
+- name: セットアップ
+  hosts: local
+  tags: setup
+  roles:
+    - setup
