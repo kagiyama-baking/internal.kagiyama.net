@@ -1,61 +1,89 @@
 ---
+# ===== 日本語化 =====
+- name: 日本語言語パックをインストール
+  ansible.builtin.apt:
+      name:
+          - language-pack-ja
+      state: present
+      update_cache: true
+  become: true
+
+- name: ja_JP.UTF-8ロケールを生成
+  community.general.locale_gen:
+      name: ja_JP.UTF-8
+      state: present
+  become: true
+
+- name: デフォルトロケールをja_JP.UTF-8に設定
+  ansible.builtin.lineinfile:
+      path: /etc/default/locale
+      regexp: '^LANG='
+      line: 'LANG=ja_JP.UTF-8'
+  become: true
+
+- name: タイムゾーンをAsia/Tokyoに設定
+  community.general.timezone:
+      name: Asia/Tokyo
+  become: true
+
+# ===== Docker =====
 - name: 必要なパッケージをインストール
   ansible.builtin.apt:
-    name:
-      - ca-certificates
-      - curl
-      - gnupg
-    state: present
-    update_cache: true
+      name:
+          - ca-certificates
+          - curl
+          - gnupg
+      state: present
+      update_cache: true
   become: true
 
 - name: Docker公式GPGキーのディレクトリを作成
   ansible.builtin.file:
-    path: /etc/apt/keyrings
-    state: directory
-    mode: "0755"
+      path: /etc/apt/keyrings
+      state: directory
+      mode: '0755'
   become: true
 
 - name: Docker公式GPGキーを追加
   ansible.builtin.get_url:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    dest: /etc/apt/keyrings/docker.asc
-    mode: "0644"
+      url: https://download.docker.com/linux/ubuntu/gpg
+      dest: /etc/apt/keyrings/docker.asc
+      mode: '0644'
   become: true
 
 - name: Dockerリポジトリを追加
   ansible.builtin.apt_repository:
-    repo: >-
-      deb [arch={{ ansible_facts['architecture'] | regex_replace('x86_64', 'amd64') | regex_replace('aarch64', 'arm64') }}
-      signed-by=/etc/apt/keyrings/docker.asc]
-      https://download.docker.com/linux/ubuntu
-      {{ ansible_facts['distribution_release'] }} stable
-    filename: docker
-    state: present
+      repo: >-
+          deb [arch={{ ansible_facts['architecture'] | regex_replace('x86_64', 'amd64') | regex_replace('aarch64', 'arm64') }}
+          signed-by=/etc/apt/keyrings/docker.asc]
+          https://download.docker.com/linux/ubuntu
+          {{ ansible_facts['distribution_release'] }} stable
+      filename: docker
+      state: present
   become: true
 
 - name: Dockerパッケージをインストール
   ansible.builtin.apt:
-    name:
-      - docker-ce
-      - docker-ce-cli
-      - containerd.io
-      - docker-buildx-plugin
-      - docker-compose-plugin
-    state: present
-    update_cache: true
+      name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+      state: present
+      update_cache: true
   become: true
 
 - name: Dockerサービスを有効化・起動
   ansible.builtin.systemd:
-    name: docker
-    enabled: true
-    state: started
+      name: docker
+      enabled: true
+      state: started
   become: true
 
 - name: ユーザーをdockerグループに追加
   ansible.builtin.user:
-    name: "{{ ansible_facts['user_id'] }}"
-    groups: docker
-    append: true
+      name: "{{ ansible_facts['user_id'] }}"
+      groups: docker
+      append: true
   become: true
