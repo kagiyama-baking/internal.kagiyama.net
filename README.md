@@ -1,4 +1,14 @@
-# UTMサーバ環境 `internal.kagiyama.net` 構築
+# 鍵山製パン 自宅サーバシステム
+
+[![Ansible](https://img.shields.io/badge/Ansible-EE0000?style=for-the-badge&logo=ansible&logoColor=white)](https://www.ansible.com/)
+[![Tailscale](https://img.shields.io/badge/Tailscale-0D4197?style=for-the-badge&logo=tailscale&logoColor=white)](https://tailscale.com/)
+[![Make](https://img.shields.io/badge/Make-6D00CC?style=for-the-badge&logo=gnu&logoColor=white)](https://www.gnu.org/software/make/)
+[![SSH](https://img.shields.io/badge/SSH-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white)](https://www.openssh.com/)
+
+## 概要
+
+UTM上で構築したUbuntu Server環境を管理するためのAnsibleプレイブック群です。
+Ansibleを使用して、サーバのセットアップや構成管理を自動化します。
 
 ## 環境
 
@@ -42,7 +52,22 @@
     sudo apt install -y git
     ```
 
-7. SSHキーの生成と登録
+7. Ansibleのインストール
+
+    ```bash
+    sudo apt install -y pipx             # pipxをインストール
+    pipx install ansible --include-deps  # Ansibleとその依存関係をインストール
+    pipx ensurepath                      # パスを通す
+    source ~/.bashrc                     # シェルを再読み込みしてpipxのパスを反映
+    ```
+
+8. Makeをインストール
+
+    ```bash
+    sudo apt install -y make # Makefileを使用するために必要
+    ```
+
+9. SSHキーの生成と登録
 
     SSHキーを生成する。
 
@@ -58,26 +83,11 @@
 
     表示された公開鍵をコピーし、GitHub の **Settings > SSH and GPG keys > New SSH key** から登録する。
 
-8. このリポジトリをcloneする
+10. このリポジトリをcloneする
 
     ```bash
     git clone git@github.com:kagiyama-baking/internal.kagiyama.net.git # SSHでクローン
     cd internal.kagiyama.net                                           # クローンしたリポジトリに移動
-    ```
-
-9. Ansibleのインストール
-
-    ```bash
-    sudo apt install -y pipx             # pipxをインストール
-    pipx install ansible --include-deps  # Ansibleとその依存関係をインストール
-    pipx ensurepath                      # パスを通す
-    source ~/.bashrc                     # シェルを再読み込みしてpipxのパスを反映
-    ```
-
-10. Makeをインストール
-
-    ```bash
-    sudo apt install -y make # Makefileを使用するために必要
     ```
 
 11. テスト用プレイブックを実行して動作確認
@@ -102,7 +112,7 @@
 Makefile 内のデフォルト値を環境に合わせて変更するか、実行時に指定してください。
 
 ```makefile
-SSH_HOST ?= ubuntu-server              # ~/.ssh/config のホスト名
+SSH_HOST ?= internal.kagiyama.net      # ~/.ssh/config のホスト名
 REMOTE_DIR ?= ~/internal.kagiyama.net  # サーバ上のリポジトリパス
 ```
 
