@@ -13,18 +13,15 @@
 #   make check                          # ドライラン
 # ==============================================================================
 
-SSH_HOST  ?= ubuntu-server
+SSH_HOST  ?= internal.kagiyama.net
 REMOTE_DIR ?= ~/internal.kagiyama.net
 ANSIBLE_DIR = ansible
 
-.PHONY: all test setup check deploy-test deploy-setup deploy-check push
+.PHONY: test setup check deploy-test deploy-setup deploy-check push
 
 # ============================================================
 # サーバ上で直接実行（Ansible）
 # ============================================================
-
-# すべてのプレイブックを実行する
-all: test setup
 
 # テスト用プレイブックを実行する（動作確認用）
 test:
