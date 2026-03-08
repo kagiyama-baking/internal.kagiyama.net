@@ -38,8 +38,9 @@ check:
 # ============================================================
 # 開発機から実行（git push → SSH → git pull → Ansible）
 # ============================================================
+# -A: エージェントフォワーディングでgit pullの認証を委譲
 
-# git push してからリモートで pull + テストのみ実行（-A: エージェントフォワーディングでgit pullの認証を委譲）
+# git push してからリモートで pull + テストのみ実行
 deploy-test: push
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make test'"
 
