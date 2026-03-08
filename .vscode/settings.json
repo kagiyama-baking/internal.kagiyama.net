@@ -24,14 +24,14 @@
     "workbench.colorCustomizations": {
         // タイトルバー
         "titleBar.activeBackground": "#2dddda",
-        "titleBar.activeForeground": "#2dddda",
+        "titleBar.activeForeground": "#4d4d4d",
         "titleBar.inactiveBackground": "#2dddda",
         "titleBar.inactiveForeground": "#b1b1b8",
         "titleBar.border": "#2dddda",
         // アクティビティバー
         "activityBar.background": "#2dddda",
         "activityBar.foreground": "#4d4d4d",
-        "activityBar.inactiveForeground": "#969696",
+        "activityBar.inactiveForeground": "#4d4d4d",
         "activityBar.border": "#2dddda",
         // アクティビティバーのバッジ
         "activityBarBadge.background": "#3a3a40",
@@ -39,5 +39,6 @@
         "tab.activeBorder": "#00e1ff",
         "tab.activeBorderTop": "#1f1f1f",
         "tab.activeBackground": "#1f1f1f"
-    }
+    },
+    "makefile.configureOnOpen": false
 }
