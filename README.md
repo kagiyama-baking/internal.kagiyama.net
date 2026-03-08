@@ -103,3 +103,37 @@
     cd ansible # ansibleディレクトリに移動
     make test  # テスト用プレイブックを実行
     ```
+
+## 開発機からのデプロイ
+
+サーバにログインせずに、開発機から直接 Ansible を実行できます。
+プロジェクトルートの Makefile が `git push` → SSH で `git pull` → Ansible 実行 をワンコマンドで行います。
+
+### 前提条件
+
+- 開発機からサーバへ SSH 接続できること（`~/.ssh/config` を設定推奨）
+- サーバ上にこのリポジトリが clone 済みであること
+
+### SSH 接続先の設定
+
+Makefile 内のデフォルト値を環境に合わせて変更するか、実行時に指定してください。
+
+```makefile
+SSH_HOST ?= ubuntu-server              # ~/.ssh/config のホスト名
+REMOTE_DIR ?= ~/internal.kagiyama.net  # サーバ上のリポジトリパス
+```
+
+### コマンド一覧
+
+| コマンド | 説明 |
+| --- | --- |
+| `make deploy-test` | テスト用プレイブックのみ実行 |
+| `make deploy-setup` | セットアップを実行（sudo パスワード入力あり） |
+| `make deploy` | テスト＋セットアップを一括実行 |
+| `make deploy-check` | ドライラン（変更を適用せず確認のみ） |
+
+ホスト名を一時的に変更して実行することもできます。
+
+```bash
+make deploy-test SSH_HOST=my-server
+```
