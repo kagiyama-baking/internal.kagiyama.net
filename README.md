@@ -58,23 +58,6 @@
 
     表示された公開鍵をコピーし、GitHub の **Settings > SSH and GPG keys > New SSH key** から登録する。
 
-    SSHキーのパスフレーズを毎回入力しなくて済むように、ssh-agentに鍵を登録する。
-
-    ```bash
-    eval "$(ssh-agent -s)"    # ssh-agentを起動
-    ssh-add ~/.ssh/id_ed25519 # 秘密鍵をエージェントに登録（初回のみパスフレーズ入力）
-    ```
-
-    ログイン時に自動でssh-agentが起動するように、`~/.bashrc` の末尾に以下を追記する。
-
-    ```bash
-    # ssh-agent自動起動
-    if [ -z "$SSH_AUTH_SOCK" ]; then
-        eval "$(ssh-agent -s)" > /dev/null
-        ssh-add ~/.ssh/id_ed25519 2>/dev/null
-    fi
-    ```
-
 8. このリポジトリをcloneする
 
     ```bash
