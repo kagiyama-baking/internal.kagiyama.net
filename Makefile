@@ -1,38 +1,55 @@
 # ==============================================================================
-# 開発機からのデプロイ用 Makefile
+# Makefile（開発機・サーバ共用）
 # ==============================================================================
-# SSH接続先の設定（環境に合わせて変更してください）
-#   - SSH_HOST: ~/.ssh/config で設定したホスト名
-#   - REMOTE_DIR: サーバ上のリポジトリパス
-#
-# 使い方:
+# 開発機から実行（SSH経由）:
 #   make deploy-test                    # テストのみ実行
 #   make deploy-setup                   # セットアップを実行
-#   make deploy                         # テスト＋セットアップを実行
-#   make deploy SSH_HOST=my-server      # ホスト名を指定して実行
+#   make deploy-check                   # ドライラン
+#   make deploy-test SSH_HOST=my-server # ホスト名を指定して実行
+#
+# サーバ上で直接実行:
+#   make test                           # テストのみ実行
+#   make setup                          # セットアップを実行
+#   make check                          # ドライラン
 # ==============================================================================
 
-SSH_HOST ?= ubuntu-server
+SSH_HOST  ?= ubuntu-server
 REMOTE_DIR ?= ~/internal.kagiyama.net
+ANSIBLE_DIR = ansible
 
-.PHONY: deploy deploy-test deploy-setup deploy-check push
+.PHONY: all test setup check deploy-test deploy-setup deploy-check push
 
-# git push してからリモートで pull + 全タスク実行
-deploy: push
-	ssh -t $(SSH_HOST) "cd $(REMOTE_DIR) && git pull && cd ansible && make all"
+# ============================================================
+# サーバ上で直接実行（Ansible）
+# ============================================================
 
-# git push してからリモートで pull + テストのみ実行
+# すべてのプレイブックを実行する
+all: test setup
+
+# テスト用プレイブックを実行する（動作確認用）
+test:
+	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags test
+
+# セットアップを実行する（Docker等のインストール、sudoパスワードが必要）
+setup:
+	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags setup --ask-become-pass
+
+# ドライラン（実際には変更を適用せず、実行内容を確認する）
+check:
+	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --check --ask-become-pass
+
+# ============================================================
+# 開発機から実行（git push → SSH → git pull → Ansible）
+# ============================================================
+
 deploy-test: push
-	ssh -t $(SSH_HOST) "cd $(REMOTE_DIR) && git pull && cd ansible && make test"
+	ssh -t $(SSH_HOST) "cd $(REMOTE_DIR) && git pull && make test"
 
-# git push してからリモートで pull + セットアップ実行（sudoパスワード入力あり）
 deploy-setup: push
-	ssh -t $(SSH_HOST) "cd $(REMOTE_DIR) && git pull && cd ansible && make setup"
+	ssh -t $(SSH_HOST) "cd $(REMOTE_DIR) && git pull && make setup"
 
-# git push してからリモートで pull + ドライラン
 deploy-check: push
-	ssh -t $(SSH_HOST) "cd $(REMOTE_DIR) && git pull && cd ansible && make check"
+	ssh -t $(SSH_HOST) "cd $(REMOTE_DIR) && git pull && make check"
 
-# 現在のブランチを push する（deploy の前段階）
 push:
 	git push
