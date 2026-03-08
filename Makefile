@@ -39,14 +39,18 @@ check:
 # 開発機から実行（git push → SSH → git pull → Ansible）
 # ============================================================
 
+# git push してからリモートで pull + テストのみ実行（-A: エージェントフォワーディングでgit pullの認証を委譲）
 deploy-test: push
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make test'"
 
+# git push してからリモートで pull + セットアップ実行（sudoパスワードが必要）
 deploy-setup: push
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make setup'"
 
+# git push してからリモートで pull + ドライラン
 deploy-check: push
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make check'"
 
+# 現在のブランチを push する（deploy の前段階）
 push:
 	git push
