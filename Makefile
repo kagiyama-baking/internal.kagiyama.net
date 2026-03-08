@@ -40,13 +40,13 @@ check:
 # ============================================================
 
 deploy-test: push
-	ssh -t $(SSH_HOST) "cd $(REMOTE_DIR) && git pull && make test"
+	ssh -t $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make test'"
 
 deploy-setup: push
-	ssh -t $(SSH_HOST) "cd $(REMOTE_DIR) && git pull && make setup"
+	ssh -t $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make setup'"
 
 deploy-check: push
-	ssh -t $(SSH_HOST) "cd $(REMOTE_DIR) && git pull && make check"
+	ssh -t $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make check'"
 
 push:
 	git push
