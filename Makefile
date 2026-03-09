@@ -5,6 +5,7 @@
 #   make deploy-test                    # テストのみ実行
 #   make deploy-setup                   # セットアップを実行
 #   make deploy-coredns                 # CoreDNS をデプロイ（Vault必要）
+#   make deploy-portainer               # Portainer をデプロイ
 #   make deploy-check                   # ドライラン
 #   make deploy-test SSH_HOST=my-server # ホスト名を指定して実行
 #
@@ -12,6 +13,7 @@
 #   make test                           # テストのみ実行
 #   make setup                          # セットアップを実行
 #   make coredns                        # CoreDNS をデプロイ（Vault必要）
+#   make portainer                      # Portainer をデプロイ
 #   make check                          # ドライラン
 # ==============================================================================
 
@@ -19,7 +21,7 @@ SSH_HOST  ?= internal.kagiyama.net
 REMOTE_DIR ?= ~/internal.kagiyama.net
 ANSIBLE_DIR = ansible
 
-.PHONY: test setup coredns check deploy-test deploy-setup deploy-coredns deploy-check push
+.PHONY: test setup coredns portainer check deploy-test deploy-setup deploy-coredns deploy-portainer deploy-check push
 
 # ============================================================
 # サーバ上で直接実行（Ansible）
@@ -36,6 +38,10 @@ setup:
 # CoreDNS をデプロイする（Vaultパスワードが必要）
 coredns:
 	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags coredns --ask-vault-pass
+
+# Portainer をデプロイする
+portainer:
+	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags portainer
 
 # ドライラン（実際には変更を適用せず、実行内容を確認する）
 check:
@@ -57,6 +63,10 @@ deploy-setup: push
 # git push してからリモートで pull + CoreDNS デプロイ（sudoパスワードが必要）
 deploy-coredns: push
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make coredns'"
+
+# git push してからリモートで pull + Portainer デプロイ
+deploy-portainer: push
+	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make portainer'"
 
 # git push してからリモートで pull + ドライラン
 deploy-check: push

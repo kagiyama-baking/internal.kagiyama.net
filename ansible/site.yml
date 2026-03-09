@@ -16,3 +16,9 @@
   tags: coredns
   roles:
       - coredns
+
+- name: Portainer デプロイ
+  hosts: local
+  tags: portainer
+  roles:
+      - portainer

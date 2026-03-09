@@ -1,0 +1,12 @@
+---
+# Portainer 設定ディレクトリ
+portainer_install_dir: /opt/portainer
+
+# Docker イメージ
+portainer_image: portainer/portainer-ce:2.25.1
+
+# Web UI ポート（HTTPS）
+portainer_https_port: 9443
+
+# バインドアドレス
+portainer_bind_address: '0.0.0.0'

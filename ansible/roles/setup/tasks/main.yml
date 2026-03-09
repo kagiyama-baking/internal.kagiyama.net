@@ -120,4 +120,5 @@
   loop:
       - /opt/coredns
       - /opt/coredns/config
+      - /opt/portainer
   become: true
