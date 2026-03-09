@@ -33,9 +33,9 @@ test:
 setup:
 	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags setup --ask-become-pass
 
-# CoreDNS をデプロイする（sudoパスワードが必要）
+# CoreDNS をデプロイする
 coredns:
-	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags coredns --ask-become-pass
+	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags coredns
 
 # ドライラン（実際には変更を適用せず、実行内容を確認する）
 check:
