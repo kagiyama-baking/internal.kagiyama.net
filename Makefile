@@ -29,9 +29,9 @@ ANSIBLE_DIR = ansible
 test:
 	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags test
 
-# セットアップを実行する（Docker等のインストール、sudoパスワードが必要）
+# セットアップを実行する（Docker等のインストール、sudo/Vaultパスワードが必要）
 setup:
-	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags setup --ask-become-pass
+	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags setup --ask-become-pass --ask-vault-pass
 
 # CoreDNS をデプロイする（Vaultパスワードが必要）
 coredns:
@@ -39,7 +39,7 @@ coredns:
 
 # ドライラン（実際には変更を適用せず、実行内容を確認する）
 check:
-	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --check --ask-become-pass
+	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --check --ask-become-pass --ask-vault-pass
 
 # ============================================================
 # 開発機から実行（git push → SSH → git pull → Ansible）
