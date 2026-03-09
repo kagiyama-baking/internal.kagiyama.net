@@ -6,12 +6,12 @@ coredns_install_dir: /opt/coredns
 coredns_image: coredns/coredns:1.12.0
 
 # バインドアドレス（内部ネットワーク専用の場合は特定のIPを指定）
-coredns_bind_address: "0.0.0.0"
+coredns_bind_address: '0.0.0.0'
 
 # 上流 DNS サーバ
 coredns_upstream_dns:
-  - 8.8.8.8
-  - 8.8.4.4
+    - 8.8.8.8
+    - 8.8.4.4
 
 # キャッシュ TTL（秒）
 coredns_cache_ttl: 30

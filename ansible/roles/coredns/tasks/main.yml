@@ -5,31 +5,31 @@
 
 - name: Vault 暗号化変数を読み込み
   ansible.builtin.include_vars:
-    file: vault.yml
+      file: vault.yml
 
-- name: docker-compose.yml を配置
+- name: Docker-compose.yml を配置
   ansible.builtin.template:
-    src: docker-compose.yml.j2
-    dest: "{{ coredns_install_dir }}/docker-compose.yml"
-    mode: "0644"
+      src: docker-compose.yml.j2
+      dest: '{{ coredns_install_dir }}/docker-compose.yml'
+      mode: '0644'
   notify: CoreDNS を再起動
 
 - name: Corefile を配置
   ansible.builtin.template:
-    src: Corefile.j2
-    dest: "{{ coredns_install_dir }}/config/Corefile"
-    mode: "0644"
+      src: Corefile.j2
+      dest: '{{ coredns_install_dir }}/config/Corefile'
+      mode: '0644'
   notify: CoreDNS を再起動
 
-- name: custom.hosts を配置
+- name: Custom.hosts を配置
   ansible.builtin.template:
-    src: custom.hosts.j2
-    dest: "{{ coredns_install_dir }}/config/custom.hosts"
-    mode: "0644"
+      src: custom.hosts.j2
+      dest: '{{ coredns_install_dir }}/config/custom.hosts'
+      mode: '0644'
   notify: CoreDNS を再起動
 
 - name: CoreDNS コンテナを起動
   community.docker.docker_compose_v2:
-    project_src: "{{ coredns_install_dir }}"
-    state: present
-    pull: missing
+      project_src: '{{ coredns_install_dir }}'
+      state: present
+      pull: missing

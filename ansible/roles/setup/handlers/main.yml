@@ -1,5 +1,5 @@
 ---
-- name: systemd-resolved を再起動
+- name: Systemd-resolved を再起動
   ansible.builtin.systemd:
       name: systemd-resolved
       state: restarted

@@ -3,16 +3,16 @@
   hosts: local
   tags: test
   roles:
-    - test
+      - test
 
 - name: セットアップ
   hosts: local
   tags: setup
   roles:
-    - setup
+      - setup
 
 - name: CoreDNS デプロイ
   hosts: local
   tags: coredns
   roles:
-    - coredns
+      - coredns
