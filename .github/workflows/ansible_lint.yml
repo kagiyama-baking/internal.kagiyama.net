@@ -9,7 +9,7 @@ on:
             - 'ansible/**'
             - '.yamllint.yml'
             - '.ansible-lint'
-            - '.github/workflows/lint.yml'
+            - '.github/workflows/ansible_lint.yml'
 
 jobs:
     yamllint:
