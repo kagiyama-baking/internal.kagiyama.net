@@ -8,7 +8,7 @@
       update_cache: true
   become: true
 
-- name: ja_JP.UTF-8ロケールを生成
+- name: Ja_JP.UTF-8ロケールを生成
   community.general.locale_gen:
       name: ja_JP.UTF-8
       state: present
@@ -28,13 +28,13 @@
 
 # ===== DNS（systemd-resolved スタブリスナー無効化） =====
 # CoreDNS がポート53を使用するため、systemd-resolved のスタブリスナーを停止する
-- name: systemd-resolved のスタブリスナーを無効化
+- name: Systemd-resolved のスタブリスナーを無効化
   ansible.builtin.lineinfile:
       path: /etc/systemd/resolved.conf
       regexp: '^#?DNSStubListener='
       line: 'DNSStubListener=no'
   become: true
-  notify: systemd-resolved を再起動
+  notify: Systemd-resolved を再起動
 
 - name: /etc/resolv.conf のシンボリックリンクを変更
   ansible.builtin.file:
@@ -43,7 +43,7 @@
       state: link
       force: true
   become: true
-  notify: systemd-resolved を再起動
+  notify: Systemd-resolved を再起動
 
 # ===== Docker =====
 - name: 必要なパッケージをインストール
@@ -73,7 +73,9 @@
 - name: Dockerリポジトリを追加
   ansible.builtin.apt_repository:
       repo: >-
-          deb [arch={{ ansible_facts['architecture'] | regex_replace('x86_64', 'amd64') | regex_replace('aarch64', 'arm64') }}
+          deb [arch={{ ansible_facts['architecture']
+          | regex_replace('x86_64', 'amd64')
+          | regex_replace('aarch64', 'arm64') }}
           signed-by=/etc/apt/keyrings/docker.asc]
           https://download.docker.com/linux/ubuntu
           {{ ansible_facts['distribution_release'] }} stable
@@ -110,11 +112,11 @@
 # ===== アプリケーションディレクトリ =====
 - name: /opt配下のアプリケーションディレクトリを作成
   ansible.builtin.file:
-      path: "{{ item }}"
+      path: '{{ item }}'
       state: directory
       owner: "{{ ansible_facts['user_id'] }}"
       group: "{{ ansible_facts['user_id'] }}"
-      mode: "0755"
+      mode: '0755'
   loop:
       - /opt/coredns
       - /opt/coredns/config

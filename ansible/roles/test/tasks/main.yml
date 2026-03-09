@@ -4,18 +4,18 @@
 
 - name: ホスト名を取得
   ansible.builtin.command: hostname
-  register: hostname_result
+  register: test_hostname_result
   changed_when: false
 
 - name: ホスト名を表示
   ansible.builtin.debug:
-    msg: "ホスト名: {{ hostname_result.stdout }}"
+      msg: 'ホスト名: {{ test_hostname_result.stdout }}'
 
 - name: OSバージョンを取得
   ansible.builtin.command: lsb_release -d
-  register: os_result
+  register: test_os_result
   changed_when: false
 
 - name: OSバージョンを表示
   ansible.builtin.debug:
-    msg: "OS: {{ os_result.stdout }}"
+      msg: 'OS: {{ test_os_result.stdout }}'
