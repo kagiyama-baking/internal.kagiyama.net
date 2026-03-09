@@ -1,0 +1,42 @@
+---
+# ===== CoreDNS デプロイ =====
+
+- name: CoreDNS 設定ディレクトリを作成
+  ansible.builtin.file:
+    path: "{{ coredns_install_dir }}/config"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+
+- name: docker-compose.yml を配置
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ coredns_install_dir }}/docker-compose.yml"
+    mode: "0644"
+  become: true
+  notify: CoreDNS を再起動
+
+- name: Corefile を配置
+  ansible.builtin.template:
+    src: Corefile.j2
+    dest: "{{ coredns_install_dir }}/config/Corefile"
+    mode: "0644"
+  become: true
+  notify: CoreDNS を再起動
+
+- name: custom.hosts を配置
+  ansible.builtin.template:
+    src: custom.hosts.j2
+    dest: "{{ coredns_install_dir }}/config/custom.hosts"
+    mode: "0644"
+  become: true
+  notify: CoreDNS を再起動
+
+- name: CoreDNS コンテナを起動
+  community.docker.docker_compose_v2:
+    project_src: "{{ coredns_install_dir }}"
+    state: present
+    pull: missing
+  become: true

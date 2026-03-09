@@ -1,0 +1,11 @@
+. {
+    hosts /custom.hosts {
+        fallthrough
+    }
+    forward . {{ coredns_upstream_dns | join(' ') }}
+    log
+    errors
+    cache {{ coredns_cache_ttl }}
+    reload
+    loadbalance
+}

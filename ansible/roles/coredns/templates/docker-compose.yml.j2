@@ -1,0 +1,17 @@
+services:
+  coredns:
+    image: "{{ coredns_image }}"
+    container_name: coredns
+    restart: unless-stopped
+    ports:
+      - "{{ coredns_bind_address }}:53:53/udp"
+      - "{{ coredns_bind_address }}:53:53/tcp"
+    volumes:
+      - ./config/Corefile:/Corefile:ro
+      - ./config/custom.hosts:/custom.hosts:ro
+    command: -conf /Corefile
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
