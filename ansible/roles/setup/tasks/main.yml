@@ -87,3 +87,16 @@
       groups: docker
       append: true
   become: true
+
+# ===== アプリケーションディレクトリ =====
+- name: /opt配下のアプリケーションディレクトリを作成
+  ansible.builtin.file:
+      path: "{{ item }}"
+      state: directory
+      owner: "{{ ansible_facts['user_id'] }}"
+      group: "{{ ansible_facts['user_id'] }}"
+      mode: "0755"
+  loop:
+      - /opt/coredns
+      - /opt/coredns/config
+  become: true

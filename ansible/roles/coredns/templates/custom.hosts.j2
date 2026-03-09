@@ -1,0 +1,5 @@
+{% for record in coredns_dns_records %}
+{% for hostname in record.hostnames %}
+{{ record.ip }} {{ hostname }}
+{% endfor %}
+{% endfor %}

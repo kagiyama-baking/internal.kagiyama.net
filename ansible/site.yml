@@ -10,3 +10,9 @@
   tags: setup
   roles:
     - setup
+
+- name: CoreDNS デプロイ
+  hosts: local
+  tags: coredns
+  roles:
+    - coredns
