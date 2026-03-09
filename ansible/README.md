@@ -17,9 +17,20 @@ ansible/
     ├── test/                    # テスト用ロール
     │   └── tasks/
     │       └── main.yml
-    └── setup/                   # セットアップロール（Docker等）
-        └── tasks/
-            └── main.yml
+    ├── setup/                   # セットアップロール（Docker等）
+    │   └── tasks/
+    │       └── main.yml
+    └── coredns/                 # CoreDNS 内部DNSサーバ
+        ├── defaults/
+        │   └── main.yml         # 変数定義（DNSレコード、上流DNS等）
+        ├── tasks/
+        │   └── main.yml
+        ├── handlers/
+        │   └── main.yml
+        └── templates/
+            ├── docker-compose.yml.j2
+            ├── Corefile.j2
+            └── custom.hosts.j2
 ```
 
 ## ロールの追加方法
