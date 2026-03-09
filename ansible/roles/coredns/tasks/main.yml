@@ -3,6 +3,10 @@
 # 前提: setup ロールで /opt/coredns がログインユーザー所有で作成済み
 #       ログインユーザーは docker グループに所属済み
 
+- name: Vault 暗号化変数を読み込み
+  ansible.builtin.include_vars:
+    file: vault.yml
+
 - name: docker-compose.yml を配置
   ansible.builtin.template:
     src: docker-compose.yml.j2

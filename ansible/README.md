@@ -12,7 +12,7 @@ ansible/
 │   └── local/
 │       └── hosts                # ローカル実行用インベントリ
 ├── group_vars/
-│   └── local.yml                # localグループの変数定義（Vault暗号化）
+│   └── local.yml                # localグループの変数定義
 └── roles/
     ├── test/                    # テスト用ロール
     │   └── tasks/
@@ -23,6 +23,8 @@ ansible/
     └── coredns/                 # CoreDNS 内部DNSサーバ
         ├── defaults/
         │   └── main.yml         # デフォルト変数（機密情報を含まない）
+        ├── vars/
+        │   └── vault.yml        # 機密変数（Vault暗号化、DNSレコード等）
         ├── tasks/
         │   └── main.yml
         ├── handlers/
@@ -58,19 +60,20 @@ ansible/
 
 ## Ansible Vault
 
-内部IPアドレスやホスト名などの機密情報は `group_vars/local.yml` に定義し、Ansible Vault で暗号化して管理する。
+内部IPアドレスやホスト名などの機密情報は各ロールの `vars/main.yml` に定義し、Ansible Vault で暗号化して管理する。
+`group_vars` ではなくロール内の `vars/` に配置することで、該当ロール実行時のみ Vault パスワードが必要になる。
 
 ### 初回の暗号化
 
 ```bash
 cd ansible
-ansible-vault encrypt group_vars/local.yml
+ansible-vault encrypt roles/coredns/vars/vault.yml
 ```
 
 ### 変数の編集
 
 ```bash
-ansible-vault edit group_vars/local.yml
+ansible-vault edit roles/coredns/vars/vault.yml
 ```
 
 復号 → エディタで編集 → 保存時に再暗号化が自動で行われる。
