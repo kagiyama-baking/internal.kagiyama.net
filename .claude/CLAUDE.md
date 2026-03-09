@@ -17,6 +17,10 @@ UTM上のUbuntu Server環境をAnsibleで管理するためのリポジトリ。
 - `pip install` は使わず、`uv add`、`uv sync`、`uv run` 等を使うこと
 - 例: `uv add yamllint ansible-lint` / `uv run yamllint ansible/`
 
+## ドキュメント
+
+- ロールやMakeターゲットの追加・変更時は、README.md（ルート・ansible/）が最新か確認し、必要に応じて更新すること
+
 ## デプロイ
 
 プロジェクトルートの `Makefile` から `make deploy-*` で実行。
