@@ -4,14 +4,14 @@
 # 開発機から実行（SSH経由）:
 #   make deploy-test                    # テストのみ実行
 #   make deploy-setup                   # セットアップを実行
-#   make deploy-coredns                 # CoreDNS をデプロイ
+#   make deploy-coredns                 # CoreDNS をデプロイ（Vault必要）
 #   make deploy-check                   # ドライラン
 #   make deploy-test SSH_HOST=my-server # ホスト名を指定して実行
 #
 # サーバ上で直接実行:
 #   make test                           # テストのみ実行
 #   make setup                          # セットアップを実行
-#   make coredns                        # CoreDNS をデプロイ
+#   make coredns                        # CoreDNS をデプロイ（Vault必要）
 #   make check                          # ドライラン
 # ==============================================================================
 
@@ -33,9 +33,9 @@ test:
 setup:
 	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags setup --ask-become-pass
 
-# CoreDNS をデプロイする
+# CoreDNS をデプロイする（Vaultパスワードが必要）
 coredns:
-	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags coredns
+	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags coredns --ask-vault-pass
 
 # ドライラン（実際には変更を適用せず、実行内容を確認する）
 check:

@@ -16,11 +16,8 @@ coredns_upstream_dns:
 # キャッシュ TTL（秒）
 coredns_cache_ttl: 30
 
-# DNS レコード
-coredns_dns_records:
-  - ip: 172.17.2.126
-    hostnames:
-      - kawashiro-server.kagiyama.net
-      - album.kawashiro-server.kagiyama.net
-      - api.kawashiro-server.kagiyama.net
-      - test.kawashiro-server.kagiyama.net
+# DNS レコード（実際の値は group_vars/local.yml に Vault 暗号化で定義）
+# coredns_dns_records:
+#   - ip: 192.168.1.1
+#     hostnames:
+#       - example.internal
