@@ -1,0 +1,5 @@
+---
+- name: Portainer を再起動
+  community.docker.docker_compose_v2:
+      project_src: '{{ portainer_install_dir }}'
+      state: restarted

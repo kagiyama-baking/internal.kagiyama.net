@@ -1,0 +1,25 @@
+services:
+  portainer:
+    image: "{{ portainer_image }}"
+    container_name: portainer
+    restart: unless-stopped
+    ports:
+      - "{{ portainer_bind_address }}:{{ portainer_https_port }}:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - portainer_data:/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 256m
+    cpus: 1.0
+    pids_limit: 200
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  portainer_data:

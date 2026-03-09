@@ -1,0 +1,17 @@
+---
+# ===== Portainer デプロイ =====
+# 前提: setup ロールで /opt/portainer がログインユーザー所有で作成済み
+#       ログインユーザーは docker グループに所属済み
+
+- name: Docker-compose.yml を配置
+  ansible.builtin.template:
+      src: docker-compose.yml.j2
+      dest: '{{ portainer_install_dir }}/docker-compose.yml'
+      mode: '0644'
+  notify: Portainer を再起動
+
+- name: Portainer コンテナを起動
+  community.docker.docker_compose_v2:
+      project_src: '{{ portainer_install_dir }}'
+      state: present
+      pull: missing
