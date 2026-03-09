@@ -26,6 +26,25 @@
       name: Asia/Tokyo
   become: true
 
+# ===== DNS（systemd-resolved スタブリスナー無効化） =====
+# CoreDNS がポート53を使用するため、systemd-resolved のスタブリスナーを停止する
+- name: systemd-resolved のスタブリスナーを無効化
+  ansible.builtin.lineinfile:
+      path: /etc/systemd/resolved.conf
+      regexp: '^#?DNSStubListener='
+      line: 'DNSStubListener=no'
+  become: true
+  notify: systemd-resolved を再起動
+
+- name: /etc/resolv.conf のシンボリックリンクを変更
+  ansible.builtin.file:
+      src: /run/systemd/resolve/resolv.conf
+      dest: /etc/resolv.conf
+      state: link
+      force: true
+  become: true
+  notify: systemd-resolved を再起動
+
 # ===== Docker =====
 - name: 必要なパッケージをインストール
   ansible.builtin.apt:
