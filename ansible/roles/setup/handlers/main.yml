@@ -1,0 +1,6 @@
+---
+- name: systemd-resolved を再起動
+  ansible.builtin.systemd:
+      name: systemd-resolved
+      state: restarted
+  become: true
