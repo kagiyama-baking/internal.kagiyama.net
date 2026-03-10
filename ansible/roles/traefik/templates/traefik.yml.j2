@@ -29,7 +29,8 @@ certificatesResolvers:
 {% endif %}
             dnsChallenge:
                 provider: route53
-                delayBeforeCheck: "30s"
+                propagation:
+                    delayBeforeChecks: "30s"
 
 log:
     level: INFO

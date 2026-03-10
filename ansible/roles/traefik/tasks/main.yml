@@ -16,19 +16,21 @@
   ansible.builtin.file:
       path: '{{ traefik_install_dir }}/letsencrypt'
       state: directory
-      owner: "{{ ansible_facts['user_id'] }}"
-      group: "{{ ansible_facts['user_id'] }}"
-      mode: '0755'
+      owner: root
+      group: root
+      mode: '0700'
+  become: true
 
 - name: ACME 証明書ファイルを作成（パーミッション 600）
   ansible.builtin.file:
       path: '{{ traefik_install_dir }}/letsencrypt/acme.json'
       state: touch
-      owner: "{{ ansible_facts['user_id'] }}"
-      group: "{{ ansible_facts['user_id'] }}"
+      owner: root
+      group: root
       mode: '0600'
       modification_time: preserve
       access_time: preserve
+  become: true
 
 - name: Docker-compose.yml を配置
   ansible.builtin.template:
