@@ -25,3 +25,9 @@ UTM上のUbuntu Server環境をAnsibleで管理するためのリポジトリ。
 
 プロジェクトルートの `Makefile` から `make deploy-*` で実行。
 詳細は [README.md](README.md) を参照。
+
+## Vault 変数の変更
+
+- `ansible/roles/*/vars/vault.yml` の変更は PR 経由でマージが必要（直接 main push 不可）
+- 開発機で編集した場合、サーバ反映には PR マージ → `make deploy-*` の手順を踏む
+- 急ぎの場合はサーバ上で直接編集して `make <ロール名>` で反映し、後から git に同期する
