@@ -23,5 +23,5 @@ traefik_aws_region: ap-northeast-1
 # DNS-01 チャレンジの伝播確認に使用する DNS サーバ
 # CoreDNS がシステム DNS の場合、権威 NS の自動検出が妨害されるため明示的に指定する
 traefik_acme_resolvers:
-  - ns-359.awsdns-44.com:53
-  - ns-1015.awsdns-62.net:53
+    - ns-359.awsdns-44.com:53
+    - ns-1015.awsdns-62.net:53
