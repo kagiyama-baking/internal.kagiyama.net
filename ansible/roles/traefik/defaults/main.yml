@@ -7,3 +7,6 @@ traefik_image: traefik:v3.3.3
 
 # HTTP ポート
 traefik_http_port: 80
+
+# Docker API バージョン（ホストの Docker デーモンに合わせる）
+traefik_docker_api_version: '1.45'
