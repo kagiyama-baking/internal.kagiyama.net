@@ -29,6 +29,10 @@ certificatesResolvers:
 {% endif %}
             dnsChallenge:
                 provider: route53
+                resolvers:
+{% for resolver in traefik_acme_resolvers %}
+                  - "{{ resolver }}"
+{% endfor %}
                 propagation:
                     delayBeforeChecks: "30s"
 
