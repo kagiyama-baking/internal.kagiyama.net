@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     ports:
       - "{{ traefik_http_port }}:80"
+    environment:
+      - DOCKER_API_VERSION={{ traefik_docker_api_version }}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik.yml:/etc/traefik/traefik.yml:ro
