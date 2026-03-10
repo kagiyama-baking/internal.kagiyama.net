@@ -33,7 +33,16 @@ ansible/
     │       ├── docker-compose.yml.j2
     │       ├── Corefile.j2
     │       └── custom.hosts.j2
-    └── portainer/               # Portainer Docker管理UI
+    ├── portainer/               # Portainer Docker管理UI
+    │   ├── defaults/
+    │   │   └── main.yml         # デフォルト変数（イメージ、ポート等）
+    │   ├── tasks/
+    │   │   └── main.yml
+    │   ├── handlers/
+    │   │   └── main.yml
+    │   └── templates/
+    │       └── docker-compose.yml.j2
+    └── traefik/                 # Traefik リバースプロキシ
         ├── defaults/
         │   └── main.yml         # デフォルト変数（イメージ、ポート等）
         ├── tasks/
@@ -41,7 +50,8 @@ ansible/
         ├── handlers/
         │   └── main.yml
         └── templates/
-            └── docker-compose.yml.j2
+            ├── docker-compose.yml.j2
+            └── traefik.yml.j2   # Traefik 静的設定
 ```
 
 ## ロールの追加方法
@@ -104,4 +114,4 @@ Vault を使用するロール（CoreDNS 等）の実行時は `--ask-vault-pass
 make coredns  # Vault パスワードの入力を求められる
 ```
 
-> **Note:** Portainer ロールは Vault を使用しないため、`make portainer` でそのまま実行できる。
+> **Note:** Portainer・Traefik ロールは Vault を使用しないため、`make portainer` / `make traefik` でそのまま実行できる。

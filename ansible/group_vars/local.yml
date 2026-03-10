@@ -1,1 +1,3 @@
 ---
+# Traefik ネットワーク名（複数ロールで共有）
+traefik_network_name: traefik-public

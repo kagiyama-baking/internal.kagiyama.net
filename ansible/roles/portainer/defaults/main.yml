@@ -10,3 +10,6 @@ portainer_https_port: 9443
 
 # バインドアドレス
 portainer_bind_address: '0.0.0.0'
+
+# Traefik ルーティング用ホスト名
+portainer_traefik_host: portainer.internal.kagiyama.net

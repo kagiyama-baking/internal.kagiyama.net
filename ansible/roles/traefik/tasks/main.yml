@@ -1,0 +1,29 @@
+---
+# ===== Traefik デプロイ =====
+# 前提: setup ロールで /opt/traefik がログインユーザー所有で作成済み
+#       ログインユーザーは docker グループに所属済み
+
+- name: Traefik 用の Docker ネットワークを作成
+  community.docker.docker_network:
+      name: '{{ traefik_network_name }}'
+      state: present
+
+- name: Docker-compose.yml を配置
+  ansible.builtin.template:
+      src: docker-compose.yml.j2
+      dest: '{{ traefik_install_dir }}/docker-compose.yml'
+      mode: '0644'
+  notify: Traefik を再起動
+
+- name: Traefik 静的設定を配置
+  ansible.builtin.template:
+      src: traefik.yml.j2
+      dest: '{{ traefik_install_dir }}/traefik.yml'
+      mode: '0644'
+  notify: Traefik を再起動
+
+- name: Traefik コンテナを起動
+  community.docker.docker_compose_v2:
+      project_src: '{{ traefik_install_dir }}'
+      state: present
+      pull: missing

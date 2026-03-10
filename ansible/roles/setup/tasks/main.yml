@@ -121,4 +121,5 @@
       - /opt/coredns
       - /opt/coredns/config
       - /opt/portainer
+      - /opt/traefik
   become: true
