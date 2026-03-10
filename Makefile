@@ -45,9 +45,9 @@ coredns:
 portainer:
 	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags portainer
 
-# Traefik をデプロイする（Vaultパスワードが必要）
+# Traefik をデプロイする（sudoパスワード・Vaultパスワードが必要）
 traefik:
-	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags traefik --ask-vault-pass
+	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags traefik --ask-become-pass --ask-vault-pass
 
 # ドライラン（実際には変更を適用せず、実行内容を確認する）
 check:
