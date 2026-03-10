@@ -12,26 +12,6 @@
       name: '{{ traefik_network_name }}'
       state: present
 
-- name: Let's Encrypt 証明書保存ディレクトリを作成
-  ansible.builtin.file:
-      path: '{{ traefik_install_dir }}/letsencrypt'
-      state: directory
-      owner: root
-      group: root
-      mode: '0700'
-  become: true
-
-- name: ACME 証明書ファイルを作成（パーミッション 600）
-  ansible.builtin.file:
-      path: '{{ traefik_install_dir }}/letsencrypt/acme.json'
-      state: touch
-      owner: root
-      group: root
-      mode: '0600'
-      modification_time: preserve
-      access_time: preserve
-  become: true
-
 - name: Docker-compose.yml を配置
   ansible.builtin.template:
       src: docker-compose.yml.j2
