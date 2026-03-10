@@ -13,8 +13,9 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.portainer.rule=Host(`{{ portainer_traefik_host }}`)"
-      - "traefik.http.routers.portainer.entrypoints=web"
-      # TODO: HTTPS エントリポイント追加後に entrypoints=websecure に変更する
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.routers.portainer.tls.certresolver=letsencrypt"
       - "traefik.http.services.portainer.loadbalancer.server.port=9000"
     security_opt:
       - no-new-privileges:true

@@ -6,7 +6,7 @@
 #   make deploy-setup                   # セットアップを実行
 #   make deploy-coredns                 # CoreDNS をデプロイ（Vault必要）
 #   make deploy-portainer               # Portainer をデプロイ
-#   make deploy-traefik                 # Traefik をデプロイ
+#   make deploy-traefik                 # Traefik をデプロイ（Vault必要）
 #   make deploy-check                   # ドライラン
 #   make deploy-test SSH_HOST=my-server # ホスト名を指定して実行
 #
@@ -15,7 +15,7 @@
 #   make setup                          # セットアップを実行
 #   make coredns                        # CoreDNS をデプロイ（Vault必要）
 #   make portainer                      # Portainer をデプロイ
-#   make traefik                        # Traefik をデプロイ
+#   make traefik                        # Traefik をデプロイ（Vault必要）
 #   make check                          # ドライラン
 # ==============================================================================
 
@@ -45,9 +45,9 @@ coredns:
 portainer:
 	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags portainer
 
-# Traefik をデプロイする
+# Traefik をデプロイする（Vaultパスワードが必要）
 traefik:
-	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags traefik
+	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags traefik --ask-vault-pass
 
 # ドライラン（実際には変更を適用せず、実行内容を確認する）
 check:
