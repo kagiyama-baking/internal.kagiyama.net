@@ -5,9 +5,15 @@ services:
     restart: unless-stopped
     ports:
       - "{{ traefik_http_port }}:80"
+      - "{{ traefik_https_port }}:443"
+    environment:
+      - AWS_ACCESS_KEY_ID={{ traefik_vault_aws_access_key_id }}
+      - AWS_SECRET_ACCESS_KEY={{ traefik_vault_aws_secret_access_key }}
+      - AWS_REGION={{ traefik_aws_region }}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./letsencrypt:/letsencrypt:rw
     networks:
       - {{ traefik_network_name }}
     security_opt:

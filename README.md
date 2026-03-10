@@ -156,7 +156,7 @@ REMOTE_DIR ?= ~/internal.kagiyama.net  # サーバ上のリポジトリパス
 | `make deploy-setup`   | セットアップを実行（sudo パスワード入力あり）  |
 | `make deploy-coredns`   | CoreDNS をデプロイ（Vault パスワード入力あり） |
 | `make deploy-portainer` | Portainer をデプロイ                           |
-| `make deploy-traefik`   | Traefik をデプロイ                             |
+| `make deploy-traefik`   | Traefik をデプロイ（Vault パスワード入力あり） |
 | `make deploy-check`     | ドライラン（変更を適用せず確認のみ）           |
 
 ホスト名を一時的に変更して実行することもできます。

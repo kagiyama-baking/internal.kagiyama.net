@@ -3,16 +3,38 @@
 # 前提: setup ロールで /opt/traefik がログインユーザー所有で作成済み
 #       ログインユーザーは docker グループに所属済み
 
+- name: Vault 暗号化変数を読み込み
+  ansible.builtin.include_vars:
+      file: vault.yml
+
 - name: Traefik 用の Docker ネットワークを作成
   community.docker.docker_network:
       name: '{{ traefik_network_name }}'
       state: present
 
+- name: Let's Encrypt 証明書保存ディレクトリを作成
+  ansible.builtin.file:
+      path: '{{ traefik_install_dir }}/letsencrypt'
+      state: directory
+      owner: "{{ ansible_facts['user_id'] }}"
+      group: "{{ ansible_facts['user_id'] }}"
+      mode: '0755'
+
+- name: ACME 証明書ファイルを作成（パーミッション 600）
+  ansible.builtin.file:
+      path: '{{ traefik_install_dir }}/letsencrypt/acme.json'
+      state: touch
+      owner: "{{ ansible_facts['user_id'] }}"
+      group: "{{ ansible_facts['user_id'] }}"
+      mode: '0600'
+      modification_time: preserve
+      access_time: preserve
+
 - name: Docker-compose.yml を配置
   ansible.builtin.template:
       src: docker-compose.yml.j2
       dest: '{{ traefik_install_dir }}/docker-compose.yml'
-      mode: '0644'
+      mode: '0600'
   notify: Traefik を再起動
 
 - name: Traefik 静的設定を配置

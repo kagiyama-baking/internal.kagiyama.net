@@ -7,3 +7,15 @@ traefik_image: traefik:v3.6.10
 
 # HTTP ポート
 traefik_http_port: 80
+
+# HTTPS ポート
+traefik_https_port: 443
+
+# ACME メールアドレス（Let's Encrypt 証明書取得用、vault.yml で上書き）
+traefik_acme_email: ''
+
+# Let's Encrypt ステージング環境を使用するか（初回テスト時は true 推奨）
+traefik_acme_staging: false
+
+# AWS リージョン（Route 53 DNS-01 チャレンジ用）
+traefik_aws_region: ap-northeast-1

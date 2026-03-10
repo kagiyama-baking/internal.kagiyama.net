@@ -45,6 +45,8 @@ ansible/
     └── traefik/                 # Traefik リバースプロキシ
         ├── defaults/
         │   └── main.yml         # デフォルト変数（イメージ、ポート等）
+        ├── vars/
+        │   └── vault.yml        # 機密変数（Vault暗号化、AWS認証情報等）
         ├── tasks/
         │   └── main.yml
         ├── handlers/
@@ -92,6 +94,7 @@ ansible-vault encrypt roles/coredns/vars/vault.yml
 ### 変数の編集
 
 ```bash
+cd ansible
 ansible-vault edit roles/coredns/vars/vault.yml
 ```
 
@@ -99,12 +102,12 @@ ansible-vault edit roles/coredns/vars/vault.yml
 
 ### よく使うコマンド
 
-| コマンド | 用途 |
-|----------|------|
-| `ansible-vault encrypt <file>` | 平文ファイルを暗号化 |
-| `ansible-vault edit <file>` | 復号して編集→再暗号化 |
-| `ansible-vault view <file>` | 復号して閲覧（読み取り専用） |
-| `ansible-vault decrypt <file>` | 暗号化ファイルを平文に戻す |
+| コマンド                       | 用途                         |
+| ------------------------------ | ---------------------------- |
+| `ansible-vault encrypt <file>` | 平文ファイルを暗号化         |
+| `ansible-vault edit <file>`    | 復号して編集→再暗号化        |
+| `ansible-vault view <file>`    | 復号して閲覧（読み取り専用） |
+| `ansible-vault decrypt <file>` | 暗号化ファイルを平文に戻す   |
 
 ### プレイブック実行時
 
@@ -114,4 +117,39 @@ Vault を使用するロール（CoreDNS 等）の実行時は `--ask-vault-pass
 make coredns  # Vault パスワードの入力を求められる
 ```
 
-> **Note:** Portainer・Traefik ロールは Vault を使用しないため、`make portainer` / `make traefik` でそのまま実行できる。
+> **Note:** Portainer ロールは Vault を使用しないため、`make portainer` でそのまま実行できる。
+
+### AWS IAM ポリシー（Route 53 DNS-01 チャレンジ用）
+
+Traefik の Let's Encrypt 証明書取得に使用する IAM ユーザーには、Route 53 の TXT レコード操作のみ許可する最小権限ポリシーを推奨する。
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "route53:GetChange",
+                "route53:ChangeResourceRecordSets",
+                "route53:ListResourceRecordSets"
+            ],
+            "Resource": "arn:aws:route53:::hostedzone/ZXXXXXXXXXX"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "route53:GetChange"
+            ],
+            "Resource": "arn:aws:route53:::change/*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "route53:ListHostedZonesByName",
+            "Resource": "*"
+        }
+    ]
+}
+```
+
+> **Note:** `hostedzone/ZXXXXXXXXXX` は実際の Hosted Zone ID に置き換えること。特定のゾーンに限定することで、他のゾーンへの操作を防止できる。
