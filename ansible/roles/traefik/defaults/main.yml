@@ -3,10 +3,7 @@
 traefik_install_dir: /opt/traefik
 
 # Docker イメージ
-traefik_image: traefik:v3.3.3
+traefik_image: traefik:v3.6.10
 
 # HTTP ポート
 traefik_http_port: 80
-
-# Docker API バージョン（ホストの Docker デーモンに合わせる）
-traefik_docker_api_version: '1.45'
