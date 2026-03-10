@@ -1,0 +1,9 @@
+---
+# Traefik 設定ディレクトリ
+traefik_install_dir: /opt/traefik
+
+# Docker イメージ
+traefik_image: traefik:v3.3.3
+
+# HTTP ポート
+traefik_http_port: 80

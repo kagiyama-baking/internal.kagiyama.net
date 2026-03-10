@@ -17,6 +17,12 @@
   roles:
       - coredns
 
+- name: Traefik デプロイ
+  hosts: local
+  tags: traefik
+  roles:
+      - traefik
+
 - name: Portainer デプロイ
   hosts: local
   tags: portainer

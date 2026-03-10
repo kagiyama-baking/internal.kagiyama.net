@@ -8,6 +8,14 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - portainer_data:/data
+    networks:
+      - {{ traefik_network_name }}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`{{ portainer_traefik_host }}`)"
+      - "traefik.http.routers.portainer.entrypoints=web"
+      # TODO: HTTPS エントリポイント追加後に entrypoints=websecure に変更する
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -20,6 +28,10 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+networks:
+  {{ traefik_network_name }}:
+    external: true
 
 volumes:
   portainer_data:
