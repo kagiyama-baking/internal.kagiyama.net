@@ -11,7 +11,7 @@ immich_db_data_location: /opt/immich/postgres
 # Docker イメージ
 immich_server_image: ghcr.io/immich-app/immich-server:v2.5.6
 immich_machine_learning_image: ghcr.io/immich-app/immich-machine-learning:v2.5.6
-immich_redis_image: docker.io/valkey/valkey:9-bookworm
+immich_redis_image: docker.io/valkey/valkey:9
 immich_db_image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
 
 # Immich サーバポート
