@@ -1,0 +1,134 @@
+services:
+  immich-server:
+    image: "{{ immich_server_image }}"
+    container_name: immich-server
+    restart: unless-stopped
+    ports:
+      - "{{ immich_bind_address }}:{{ immich_port }}:2283"
+    env_file:
+      - .env
+    volumes:
+      - "{{ immich_upload_location }}:/usr/src/app/upload"
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - {{ traefik_network_name }}
+      - immich-internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.immich.rule=Host(`{{ immich_traefik_host }}`)"
+      - "traefik.http.routers.immich.entrypoints=websecure"
+      - "traefik.http.routers.immich.tls=true"
+      - "traefik.http.routers.immich.tls.certresolver=letsencrypt"
+      - "traefik.http.services.immich.loadbalancer.server.port=2283"
+      - "traefik.docker.network={{ traefik_network_name }}"
+    depends_on:
+      immich-redis:
+        condition: service_healthy
+      immich-database:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: {{ immich_server_mem_limit }}
+    cpus: {{ immich_server_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  immich-machine-learning:
+    image: "{{ immich_machine_learning_image }}"
+    container_name: immich-machine-learning
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - immich-model-cache:/cache
+    networks:
+      - immich-internal
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: {{ immich_ml_mem_limit }}
+    cpus: {{ immich_ml_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  immich-redis:
+    image: "{{ immich_redis_image }}"
+    container_name: immich-redis
+    restart: unless-stopped
+    networks:
+      - immich-internal
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    mem_limit: {{ immich_redis_mem_limit }}
+    cpus: {{ immich_redis_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  immich-database:
+    image: "{{ immich_db_image }}"
+    container_name: immich-database
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_PASSWORD: "{{ immich_vault_db_password }}"
+      POSTGRES_USER: "{{ immich_db_username }}"
+      POSTGRES_DB: "{{ immich_db_database_name }}"
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - "{{ immich_db_data_location }}:/var/lib/postgresql/data"
+    networks:
+      - immich-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d {{ immich_db_database_name }} -U {{ immich_db_username }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    mem_limit: {{ immich_db_mem_limit }}
+    cpus: {{ immich_db_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  {{ traefik_network_name }}:
+    external: true
+  immich-internal:
+    driver: bridge
+
+volumes:
+  immich-model-cache:

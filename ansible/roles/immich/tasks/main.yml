@@ -1,0 +1,40 @@
+---
+# ===== Immich デプロイ =====
+# 前提: setup ロールで /opt/immich がログインユーザー所有で作成済み
+#       ログインユーザーは docker グループに所属済み
+
+- name: Vault 暗号化変数を読み込み
+  ansible.builtin.include_vars:
+      file: vault.yml
+
+- name: アップロードディレクトリを作成
+  ansible.builtin.file:
+      path: '{{ immich_upload_location }}'
+      state: directory
+      mode: '0755'
+
+- name: PostgreSQL データディレクトリを作成
+  ansible.builtin.file:
+      path: '{{ immich_db_data_location }}'
+      state: directory
+      mode: '0755'
+
+- name: 環境変数ファイルを配置
+  ansible.builtin.template:
+      src: env.j2
+      dest: '{{ immich_install_dir }}/.env'
+      mode: '0600'
+  notify: Immich を再起動
+
+- name: Docker-compose.yml を配置
+  ansible.builtin.template:
+      src: docker-compose.yml.j2
+      dest: '{{ immich_install_dir }}/docker-compose.yml'
+      mode: '0600'
+  notify: Immich を再起動
+
+- name: Immich コンテナを起動
+  community.docker.docker_compose_v2:
+      project_src: '{{ immich_install_dir }}'
+      state: present
+      pull: missing

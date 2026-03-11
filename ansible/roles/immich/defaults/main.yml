@@ -1,0 +1,47 @@
+---
+# Immich 設定ディレクトリ
+immich_install_dir: /opt/immich
+
+# 写真・動画の保存先
+immich_upload_location: /opt/immich/library
+
+# PostgreSQL データの保存先
+immich_db_data_location: /opt/immich/postgres
+
+# Docker イメージ
+immich_server_image: ghcr.io/immich-app/immich-server:v1.131.3
+immich_machine_learning_image: ghcr.io/immich-app/immich-machine-learning:v1.131.3
+immich_redis_image: docker.io/valkey/valkey:8-bookworm
+immich_db_image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+
+# Immich サーバポート
+immich_port: 2283
+
+# バインドアドレス（Traefik経由のみアクセス許可）
+immich_bind_address: '127.0.0.1'
+
+# Traefik ルーティング用ホスト名
+immich_traefik_host: immich.internal.kagiyama.net
+
+# タイムゾーン
+immich_timezone: Asia/Tokyo
+
+# データベース設定
+immich_db_username: postgres
+immich_db_database_name: immich
+
+# リソース制限: immich-server
+immich_server_mem_limit: 2g
+immich_server_cpus: 2.0
+
+# リソース制限: immich-machine-learning
+immich_ml_mem_limit: 4g
+immich_ml_cpus: 2.0
+
+# リソース制限: Redis (Valkey)
+immich_redis_mem_limit: 256m
+immich_redis_cpus: 0.5
+
+# リソース制限: PostgreSQL
+immich_db_mem_limit: 1g
+immich_db_cpus: 1.0
