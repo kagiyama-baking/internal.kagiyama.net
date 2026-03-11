@@ -122,4 +122,5 @@
       - /opt/coredns/config
       - /opt/portainer
       - /opt/traefik
+      - /opt/immich
   become: true

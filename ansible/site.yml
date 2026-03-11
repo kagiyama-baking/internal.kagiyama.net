@@ -28,3 +28,9 @@
   tags: portainer
   roles:
       - portainer
+
+- name: Immich デプロイ
+  hosts: local
+  tags: immich
+  roles:
+      - immich

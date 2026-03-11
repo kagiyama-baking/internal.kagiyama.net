@@ -42,18 +42,30 @@ ansible/
     │   │   └── main.yml
     │   └── templates/
     │       └── docker-compose.yml.j2
-    └── traefik/                 # Traefik リバースプロキシ
+    ├── traefik/                 # Traefik リバースプロキシ
+    │   ├── defaults/
+    │   │   └── main.yml         # デフォルト変数（イメージ、ポート等）
+    │   ├── vars/
+    │   │   └── vault.yml        # 機密変数（Vault暗号化、AWS認証情報等）
+    │   ├── tasks/
+    │   │   └── main.yml
+    │   ├── handlers/
+    │   │   └── main.yml
+    │   └── templates/
+    │       ├── docker-compose.yml.j2
+    │       └── traefik.yml.j2   # Traefik 静的設定
+    └── immich/                  # Immich 写真・動画管理
         ├── defaults/
         │   └── main.yml         # デフォルト変数（イメージ、ポート等）
         ├── vars/
-        │   └── vault.yml        # 機密変数（Vault暗号化、AWS認証情報等）
+        │   └── vault.yml        # 機密変数（Vault暗号化、DBパスワード等）
         ├── tasks/
         │   └── main.yml
         ├── handlers/
         │   └── main.yml
         └── templates/
             ├── docker-compose.yml.j2
-            └── traefik.yml.j2   # Traefik 静的設定
+            └── env.j2           # 環境変数ファイル
 ```
 
 ## ロールの追加方法
