@@ -49,7 +49,7 @@
       force: true
   become: true
   notify: Systemd-resolved を再起動
-  when: not setup_resolv_conf.stat.islnk
+  when: setup_resolv_conf.stat.islnk
 
 # ===== Docker =====
 - name: 必要なパッケージをインストール
