@@ -36,6 +36,11 @@
   become: true
   notify: Systemd-resolved を再起動
 
+- name: /etc/resolv.conf の状態を確認
+  ansible.builtin.stat:
+      path: /etc/resolv.conf
+  register: setup_resolv_conf
+
 - name: /etc/resolv.conf のシンボリックリンクを変更
   ansible.builtin.file:
       src: /run/systemd/resolve/resolv.conf
@@ -44,6 +49,7 @@
       force: true
   become: true
   notify: Systemd-resolved を再起動
+  when: not setup_resolv_conf.stat.islnk
 
 # ===== Docker =====
 - name: 必要なパッケージをインストール
