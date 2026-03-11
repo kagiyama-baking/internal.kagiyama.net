@@ -9,7 +9,7 @@ portainer_image: portainer/portainer-ce:2.25.1
 portainer_https_port: 9443
 
 # バインドアドレス（Traefik経由のみアクセス許可）
-immich_bind_address: '127.0.0.1'
+portainer_bind_address: '127.0.0.1'
 
 # Traefik ルーティング用ホスト名
 portainer_traefik_host: portainer.internal.kagiyama.net
