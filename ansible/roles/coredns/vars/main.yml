@@ -1,0 +1,14 @@
+---
+# DNS レコード（IPはvault変数を参照、ホスト名は平文で管理）
+coredns_dns_records:
+    - ip: "{{ coredns_vault_ip_kawashiro }}"
+      hostnames:
+          - kawashiro-server.kagiyama.net
+          - album.kawashiro-server.kagiyama.net
+          - api.kawashiro-server.kagiyama.net
+          - grafana.kawashiro-server.kagiyama.net
+    - ip: "{{ coredns_vault_ip_internal }}"
+      hostnames:
+          - internal.kagiyama.net
+          - portainer.internal.kagiyama.net
+          - immich.internal.kagiyama.net

@@ -16,8 +16,8 @@ coredns_upstream_dns:
 # キャッシュ TTL（秒）
 coredns_cache_ttl: 30
 
-# DNS レコード（実際の値は group_vars/local.yml に Vault 暗号化で定義）
+# DNS レコード（vars/main.yml に定義。IPは vars/vault.yml の vault 変数を参照）
 # coredns_dns_records:
-#   - ip: 192.168.1.1
+#   - ip: "{{ coredns_vault_ip_example }}"
 #     hostnames:
 #       - example.internal
