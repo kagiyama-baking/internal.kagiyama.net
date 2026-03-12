@@ -20,9 +20,6 @@ immich_port: 2283
 # バインドアドレス（Traefik経由のみアクセス許可）
 immich_bind_address: '127.0.0.1'
 
-# Traefik ルーティング用ホスト名
-immich_traefik_host: immich.internal.kagiyama.net
-
 # タイムゾーン
 immich_timezone: Asia/Tokyo
 

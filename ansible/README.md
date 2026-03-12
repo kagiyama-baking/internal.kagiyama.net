@@ -12,7 +12,7 @@ ansible/
 │   └── local/
 │       └── hosts                # ローカル実行用インベントリ
 ├── group_vars/
-│   └── local.yml                # localグループの変数定義
+│   └── local.yml                # localグループの変数定義（Traefikネットワーク名・サービスFQDNなど複数ロール共有変数）
 └── roles/
     ├── test/                    # テスト用ロール
     │   └── tasks/
@@ -22,9 +22,10 @@ ansible/
     │       └── main.yml
     ├── coredns/                 # CoreDNS 内部DNSサーバ
     │   ├── defaults/
-    │   │   └── main.yml         # デフォルト変数（機密情報を含まない）
+    │   │   └── main.yml         # デフォルト変数（イメージ、TTL等）
     │   ├── vars/
-    │   │   └── vault.yml        # 機密変数（Vault暗号化、DNSレコード等）
+    │   │   ├── main.yml         # DNSレコード定義（ホスト名平文、IPはvault参照）
+    │   │   └── vault.yml        # 機密変数（Vault暗号化、IPアドレスのみ）
     │   ├── tasks/
     │   │   └── main.yml
     │   ├── handlers/
@@ -91,9 +92,23 @@ ansible/
         - <ロール名>
     ```
 
+## 共有変数（group_vars/local.yml）
+
+複数ロールで共通して使用する変数は `group_vars/local.yml` を Single Source of Truth として管理する。
+現在定義されている変数：
+
+| 変数名 | 値 | 用途 |
+|---|---|---|
+| `traefik_network_name` | `traefik-public` | Traefikネットワーク名（複数ロール共有） |
+| `portainer_traefik_host` | `portainer.internal.kagiyama.net` | PortainerのFQDN（CoreDNS・Traefik共用） |
+| `immich_traefik_host` | `immich.internal.kagiyama.net` | ImmichのFQDN（CoreDNS・Traefik共用） |
+
+ホスト名を変更する際はこのファイルのみを編集すれば全ロールに反映される。
+
 ## Ansible Vault
 
-内部IPアドレスやホスト名などの機密情報は各ロールの `vars/main.yml` に定義し、Ansible Vault で暗号化して管理する。
+IPアドレス等の機密情報は各ロールの `vars/vault.yml` に `<ロール名>_vault_` プレフィックス変数として定義し、Ansible Vault で暗号化して管理する。
+ホスト名など機密でない設定は `vars/main.yml` に平文で定義し、vault 変数を参照する形にすることで、ホスト名の編集に vault 復号が不要になる。
 `group_vars` ではなくロール内の `vars/` に配置することで、該当ロール実行時のみ Vault パスワードが必要になる。
 
 ### 初回の暗号化
