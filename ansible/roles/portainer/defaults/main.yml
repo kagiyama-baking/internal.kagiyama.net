@@ -10,4 +10,3 @@ portainer_https_port: 9443
 
 # バインドアドレス（Traefik経由のみアクセス許可）
 portainer_bind_address: '127.0.0.1'
-
