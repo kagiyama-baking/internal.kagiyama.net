@@ -12,7 +12,7 @@ ansible/
 │   └── local/
 │       └── hosts                # ローカル実行用インベントリ
 ├── group_vars/
-│   └── local.yml                # localグループの変数定義
+│   └── local.yml                # localグループの変数定義（Traefikネットワーク名・サービスFQDNなど複数ロール共有変数）
 └── roles/
     ├── test/                    # テスト用ロール
     │   └── tasks/
@@ -91,6 +91,19 @@ ansible/
     roles:
         - <ロール名>
     ```
+
+## 共有変数（group_vars/local.yml）
+
+複数ロールで共通して使用する変数は `group_vars/local.yml` を Single Source of Truth として管理する。
+現在定義されている変数：
+
+| 変数名 | 値 | 用途 |
+|---|---|---|
+| `traefik_network_name` | `traefik-public` | Traefikネットワーク名（複数ロール共有） |
+| `portainer_traefik_host` | `portainer.internal.kagiyama.net` | PortainerのFQDN（CoreDNS・Traefik共用） |
+| `immich_traefik_host` | `immich.internal.kagiyama.net` | ImmichのFQDN（CoreDNS・Traefik共用） |
+
+ホスト名を変更する際はこのファイルのみを編集すれば全ロールに反映される。
 
 ## Ansible Vault
 

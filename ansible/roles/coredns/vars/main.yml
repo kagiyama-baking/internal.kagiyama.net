@@ -10,5 +10,5 @@ coredns_dns_records:
     - ip: "{{ coredns_vault_ip_internal }}"
       hostnames:
           - internal.kagiyama.net
-          - portainer.internal.kagiyama.net
-          - immich.internal.kagiyama.net
+          - "{{ portainer_traefik_host }}"
+          - "{{ immich_traefik_host }}"

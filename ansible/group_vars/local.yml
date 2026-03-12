@@ -1,3 +1,7 @@
 ---
 # Traefik ネットワーク名（複数ロールで共有）
 traefik_network_name: traefik-public
+
+# 管理対象サービスのFQDN（CoreDNSとTraefik双方が参照）
+portainer_traefik_host: portainer.internal.kagiyama.net
+immich_traefik_host: immich.internal.kagiyama.net
