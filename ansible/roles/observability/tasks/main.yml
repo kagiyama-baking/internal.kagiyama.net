@@ -25,10 +25,7 @@
   ansible.builtin.file:
       path: '{{ observability_install_dir }}/loki-data'
       state: directory
-      owner: "10001"
-      group: "10001"
       mode: '0755'
-  become: true
 
 - name: Grafana 環境変数ファイルを配置
   ansible.builtin.template:

@@ -73,6 +73,15 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  loki-init:
+    image: "{{ observability_loki_image }}"
+    container_name: loki-init
+    user: root
+    entrypoint: ["sh", "-c", "chown -R 10001:10001 /loki"]
+    volumes:
+      - ./loki-data:/loki
+    restart: "no"
+
   loki:
     image: "{{ observability_loki_image }}"
     container_name: loki
@@ -83,6 +92,9 @@ services:
       - ./loki-data:/loki
     networks:
       - observability-internal
+    depends_on:
+      loki-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3100/ready"]
       interval: 15s
