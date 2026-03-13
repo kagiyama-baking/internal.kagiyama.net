@@ -5,10 +5,8 @@ services:
     restart: unless-stopped
     ports:
       - "{{ observability_grafana_bind_address }}:{{ observability_grafana_port }}:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD={{ observability_vault_grafana_admin_password }}
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=https://{{ grafana_traefik_host }}
+    env_file:
+      - grafana.env
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
@@ -57,10 +55,11 @@ services:
     networks:
       - observability-internal
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:9090/-/healthy"]
       interval: 15s
       timeout: 5s
-      retries: 3
+      retries: 5
+      start_period: 30s
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -81,14 +80,15 @@ services:
     command: -config.file=/etc/loki/loki.yml
     volumes:
       - ./loki.yml:/etc/loki/loki.yml:ro
-      - loki_data:/loki
+      - ./loki-data:/loki
     networks:
       - observability-internal
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:3100/ready"]
       interval: 15s
       timeout: 5s
-      retries: 3
+      retries: 5
+      start_period: 30s
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -197,5 +197,4 @@ networks:
 volumes:
   grafana_data:
   prometheus_data:
-  loki_data:
   promtail_positions:

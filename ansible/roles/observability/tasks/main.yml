@@ -21,6 +21,22 @@
       state: directory
       mode: '0755'
 
+- name: Loki データディレクトリを作成
+  ansible.builtin.file:
+      path: '{{ observability_install_dir }}/loki-data'
+      state: directory
+      owner: "10001"
+      group: "10001"
+      mode: '0755'
+  become: true
+
+- name: Grafana 環境変数ファイルを配置
+  ansible.builtin.template:
+      src: grafana.env.j2
+      dest: '{{ observability_install_dir }}/grafana.env'
+      mode: '0600'
+  notify: Observability を再起動
+
 - name: Docker Compose 設定を配置
   ansible.builtin.template:
       src: docker-compose.yml.j2
