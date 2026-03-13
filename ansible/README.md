@@ -55,18 +55,39 @@ ansible/
     │   └── templates/
     │       ├── docker-compose.yml.j2
     │       └── traefik.yml.j2   # Traefik 静的設定
-    └── immich/                  # Immich 写真・動画管理
+    ├── immich/                  # Immich 写真・動画管理
+    │   ├── defaults/
+    │   │   └── main.yml         # デフォルト変数（イメージ、ポート等）
+    │   ├── vars/
+    │   │   └── vault.yml        # 機密変数（Vault暗号化、DBパスワード等）
+    │   ├── tasks/
+    │   │   └── main.yml
+    │   ├── handlers/
+    │   │   └── main.yml
+    │   └── templates/
+    │       ├── docker-compose.yml.j2
+    │       └── env.j2           # 環境変数ファイル
+    └── observability/           # Observability（Grafana, Prometheus, Loki等）
         ├── defaults/
-        │   └── main.yml         # デフォルト変数（イメージ、ポート等）
+        │   └── main.yml         # デフォルト変数（イメージ、リソース制限等）
         ├── vars/
-        │   └── vault.yml        # 機密変数（Vault暗号化、DBパスワード等）
+        │   └── vault.yml        # 機密変数（Vault暗号化、Grafana管理者パスワード）
         ├── tasks/
         │   └── main.yml
         ├── handlers/
         │   └── main.yml
-        └── templates/
-            ├── docker-compose.yml.j2
-            └── env.j2           # 環境変数ファイル
+        ├── templates/
+        │   ├── docker-compose.yml.j2
+        │   ├── prometheus.yml.j2
+        │   ├── loki.yml.j2
+        │   ├── promtail.yml.j2
+        │   └── grafana/
+        │       ├── datasources.yml.j2
+        │       └── dashboards.yml.j2
+        └── files/
+            └── dashboards/
+                ├── host-container-resources.json
+                └── log-viewer.json
 ```
 
 ## ロールの追加方法
@@ -102,6 +123,7 @@ ansible/
 | `traefik_network_name` | `traefik-public` | Traefikネットワーク名（複数ロール共有） |
 | `portainer_traefik_host` | `portainer.internal.kagiyama.net` | PortainerのFQDN（CoreDNS・Traefik共用） |
 | `immich_traefik_host` | `immich.internal.kagiyama.net` | ImmichのFQDN（CoreDNS・Traefik共用） |
+| `grafana_traefik_host` | `grafana.internal.kagiyama.net` | GrafanaのFQDN（CoreDNS・Traefik共用） |
 
 ホスト名を変更する際はこのファイルのみを編集すれば全ロールに反映される。
 

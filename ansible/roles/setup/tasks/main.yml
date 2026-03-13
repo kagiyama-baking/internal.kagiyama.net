@@ -129,4 +129,5 @@
       - /opt/portainer
       - /opt/traefik
       - /opt/immich
+      - /opt/observability
   become: true

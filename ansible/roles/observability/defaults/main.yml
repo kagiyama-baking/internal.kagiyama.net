@@ -1,0 +1,46 @@
+---
+# ===== インストールディレクトリ =====
+observability_install_dir: /opt/observability
+
+# ===== Docker イメージ =====
+observability_grafana_image: grafana/grafana:11.5.2
+observability_prometheus_image: prom/prometheus:v3.3.0
+observability_loki_image: grafana/loki:3.4.3
+observability_node_exporter_image: prom/node-exporter:v1.9.1
+observability_cadvisor_image: gcr.io/cadvisor/cadvisor:v0.52.1
+observability_promtail_image: grafana/promtail:3.4.3
+
+# ===== ネットワーク =====
+observability_grafana_bind_address: 127.0.0.1
+observability_grafana_port: 3000
+
+# ===== データ保持期間 =====
+observability_prometheus_retention: 30d
+observability_loki_retention: 30d
+
+# ===== Prometheus スクレイプ間隔 =====
+observability_scrape_interval: 15s
+
+# ===== リソース制限: Grafana =====
+observability_grafana_mem_limit: 256m
+observability_grafana_cpus: 1.0
+
+# ===== リソース制限: Prometheus =====
+observability_prometheus_mem_limit: 512m
+observability_prometheus_cpus: 1.0
+
+# ===== リソース制限: Loki =====
+observability_loki_mem_limit: 512m
+observability_loki_cpus: 1.0
+
+# ===== リソース制限: Node Exporter =====
+observability_node_exporter_mem_limit: 128m
+observability_node_exporter_cpus: 0.5
+
+# ===== リソース制限: cAdvisor =====
+observability_cadvisor_mem_limit: 256m
+observability_cadvisor_cpus: 0.5
+
+# ===== リソース制限: Promtail =====
+observability_promtail_mem_limit: 128m
+observability_promtail_cpus: 0.5
