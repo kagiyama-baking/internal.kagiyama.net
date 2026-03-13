@@ -12,3 +12,4 @@ coredns_dns_records:
           - internal.kagiyama.net
           - "{{ portainer_traefik_host }}"
           - "{{ immich_traefik_host }}"
+          - "{{ grafana_traefik_host }}"

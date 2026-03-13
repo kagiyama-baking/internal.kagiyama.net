@@ -34,3 +34,9 @@
   tags: immich
   roles:
       - immich
+
+- name: Observability デプロイ
+  hosts: local
+  tags: observability
+  roles:
+      - observability

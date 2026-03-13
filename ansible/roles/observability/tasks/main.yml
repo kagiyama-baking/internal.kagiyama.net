@@ -1,0 +1,77 @@
+---
+# ===== Observability スタック デプロイ =====
+# 前提: setup ロールで /opt/observability がログインユーザー所有で作成済み
+#       ログインユーザーは docker グループに所属済み
+# サブディレクトリ (grafana/, dashboards/) はこのロール内で作成する
+# （設定ファイルの種類が多く、ロール固有の構造のため）
+
+- name: Vault 暗号化変数を読み込み
+  ansible.builtin.include_vars:
+      file: vault.yml
+
+- name: Grafana 設定ディレクトリを作成
+  ansible.builtin.file:
+      path: '{{ observability_install_dir }}/grafana'
+      state: directory
+      mode: '0755'
+
+- name: ダッシュボードディレクトリを作成
+  ansible.builtin.file:
+      path: '{{ observability_install_dir }}/dashboards'
+      state: directory
+      mode: '0755'
+
+- name: Docker Compose 設定を配置
+  ansible.builtin.template:
+      src: docker-compose.yml.j2
+      dest: '{{ observability_install_dir }}/docker-compose.yml'
+      mode: '0600'
+  notify: Observability を再起動
+
+- name: Prometheus 設定を配置
+  ansible.builtin.template:
+      src: prometheus.yml.j2
+      dest: '{{ observability_install_dir }}/prometheus.yml'
+      mode: '0644'
+  notify: Observability を再起動
+
+- name: Loki 設定を配置
+  ansible.builtin.template:
+      src: loki.yml.j2
+      dest: '{{ observability_install_dir }}/loki.yml'
+      mode: '0644'
+  notify: Observability を再起動
+
+- name: Promtail 設定を配置
+  ansible.builtin.template:
+      src: promtail.yml.j2
+      dest: '{{ observability_install_dir }}/promtail.yml'
+      mode: '0644'
+  notify: Observability を再起動
+
+- name: Grafana データソース設定を配置
+  ansible.builtin.template:
+      src: grafana/datasources.yml.j2
+      dest: '{{ observability_install_dir }}/grafana/datasources.yml'
+      mode: '0644'
+  notify: Observability を再起動
+
+- name: Grafana ダッシュボードプロバイダ設定を配置
+  ansible.builtin.template:
+      src: grafana/dashboards.yml.j2
+      dest: '{{ observability_install_dir }}/grafana/dashboards.yml'
+      mode: '0644'
+  notify: Observability を再起動
+
+- name: ダッシュボード JSON を配置
+  ansible.builtin.copy:
+      src: dashboards/
+      dest: '{{ observability_install_dir }}/dashboards/'
+      mode: '0644'
+  notify: Observability を再起動
+
+- name: Observability コンテナを起動
+  community.docker.docker_compose_v2:
+      project_src: '{{ observability_install_dir }}'
+      state: present
+      pull: missing

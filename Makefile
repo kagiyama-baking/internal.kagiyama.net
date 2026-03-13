@@ -8,6 +8,7 @@
 #   make deploy-portainer               # Portainer をデプロイ
 #   make deploy-traefik                 # Traefik をデプロイ（Vault必要）
 #   make deploy-immich                  # Immich をデプロイ（Vault必要）
+#   make deploy-observability           # Observability をデプロイ（Vault必要）
 #   make deploy-check                   # ドライラン
 #   make deploy-test SSH_HOST=my-server # ホスト名を指定して実行
 #
@@ -18,6 +19,7 @@
 #   make portainer                      # Portainer をデプロイ
 #   make traefik                        # Traefik をデプロイ（Vault必要）
 #   make immich                         # Immich をデプロイ（Vault必要）
+#   make observability                  # Observability をデプロイ（Vault必要）
 #   make check                          # ドライラン
 # ==============================================================================
 
@@ -25,7 +27,7 @@ SSH_HOST  ?= internal.kagiyama.net
 REMOTE_DIR ?= ~/internal.kagiyama.net
 ANSIBLE_DIR = ansible
 
-.PHONY: test setup coredns portainer traefik immich check deploy-test deploy-setup deploy-coredns deploy-portainer deploy-traefik deploy-immich deploy-check push
+.PHONY: test setup coredns portainer traefik immich observability check deploy-test deploy-setup deploy-coredns deploy-portainer deploy-traefik deploy-immich deploy-observability deploy-check push
 
 # ============================================================
 # サーバ上で直接実行（Ansible）
@@ -54,6 +56,10 @@ traefik:
 # Immich をデプロイする（Vaultパスワードが必要）
 immich:
 	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags immich --ask-vault-pass
+
+# Observability をデプロイする（Vaultパスワードが必要）
+observability:
+	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags observability --ask-vault-pass
 
 # ドライラン（実際には変更を適用せず、実行内容を確認する）
 check:
@@ -87,6 +93,10 @@ deploy-traefik: push
 # git push してからリモートで pull + Immich デプロイ
 deploy-immich: push
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make immich'"
+
+# git push してからリモートで pull + Observability デプロイ
+deploy-observability: push
+	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make observability'"
 
 # git push してからリモートで pull + ドライラン
 deploy-check: push

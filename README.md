@@ -158,6 +158,7 @@ REMOTE_DIR ?= ~/internal.kagiyama.net  # サーバ上のリポジトリパス
 | `make deploy-portainer` | Portainer をデプロイ                           |
 | `make deploy-traefik`   | Traefik をデプロイ（Vault パスワード入力あり） |
 | `make deploy-immich`    | Immich をデプロイ（Vault パスワード入力あり）  |
+| `make deploy-observability` | Observability をデプロイ（Vault パスワード入力あり） |
 | `make deploy-check`     | ドライラン（変更を適用せず確認のみ）           |
 
 ホスト名を一時的に変更して実行することもできます。
