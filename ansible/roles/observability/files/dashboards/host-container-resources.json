@@ -176,7 +176,7 @@
           "max": 100
         }
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 7 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 7 },
       "id": 5,
       "options": {
         "legend": {
@@ -190,52 +190,23 @@
           "sort": "desc"
         }
       },
-      "title": "CPU 使用率（推移）",
+      "title": "ホスト使用率（推移）",
       "type": "timeseries",
       "targets": [
         {
           "expr": "100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
-          "legendFormat": "CPU 使用率"
-        }
-      ]
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "${datasource}" },
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth",
-            "fillOpacity": 20,
-            "showPoints": "never",
-            "lineWidth": 1
-          },
-          "unit": "percent",
-          "min": 0,
-          "max": 100
-        }
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 7 },
-      "id": 6,
-      "options": {
-        "legend": {
-          "calcs": ["mean", "max"],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
+          "legendFormat": "CPU",
+          "refId": "A"
         },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "title": "メモリ使用率（推移）",
-      "type": "timeseries",
-      "targets": [
         {
           "expr": "(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100",
-          "legendFormat": "メモリ使用率"
+          "legendFormat": "メモリ",
+          "refId": "B"
+        },
+        {
+          "expr": "(1 - node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"rootfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"rootfs\"}) * 100",
+          "legendFormat": "ディスク (/)",
+          "refId": "C"
         }
       ]
     },
@@ -381,37 +352,38 @@
           "options": { "byField": "name" }
         },
         {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "name",
+                "Value #A",
+                "Value #B",
+                "Value #C",
+                "container_label_com_docker_compose_project",
+                "container_label_com_docker_compose_project 1",
+                "container_label_com_docker_compose_project 2"
+              ]
+            }
+          }
+        },
+        {
           "id": "organize",
           "options": {
             "excludeByName": {
-              "Time": true,
-              "Time 1": true,
-              "Time 2": true,
-              "Time 3": true,
-              "__name__": true,
-              "__name__ 1": true,
-              "__name__ 2": true,
-              "id": true,
-              "id 1": true,
-              "id 2": true,
-              "image": true,
-              "image 1": true,
-              "image 2": true,
-              "instance": true,
-              "instance 1": true,
-              "instance 2": true,
-              "job": true,
-              "job 1": true,
-              "job 2": true
+              "container_label_com_docker_compose_project 1": true,
+              "container_label_com_docker_compose_project 2": true
             },
             "indexByName": {
               "name": 0,
-              "Value #A": 1,
-              "Value #B": 2,
-              "Value #C": 3
+              "container_label_com_docker_compose_project": 1,
+              "Value #A": 2,
+              "Value #B": 3,
+              "Value #C": 4
             },
             "renameByName": {
               "name": "コンテナ",
+              "container_label_com_docker_compose_project": "スタック",
               "Value #A": "CPU %",
               "Value #B": "メモリ",
               "Value #C": "メモリ制限"
@@ -440,7 +412,7 @@
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "Asia/Tokyo",
-  "title": "ホスト & コンテナ リソース",
+  "title": "1.Resources Dashboard",
   "uid": "host-container-resources",
   "version": 1
 }
