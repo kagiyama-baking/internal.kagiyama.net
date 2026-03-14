@@ -27,7 +27,7 @@ SSH_HOST  ?= internal.kagiyama.net
 REMOTE_DIR ?= ~/internal.kagiyama.net
 ANSIBLE_DIR = ansible
 
-.PHONY: test setup coredns portainer traefik immich observability check deploy-test deploy-setup deploy-coredns deploy-portainer deploy-traefik deploy-immich deploy-observability deploy-check push
+.PHONY: test setup coredns portainer traefik immich observability check deploy-test deploy-setup deploy-coredns deploy-portainer deploy-traefik deploy-immich deploy-observability deploy-check
 
 # ============================================================
 # サーバ上で直接実行（Ansible）
@@ -66,42 +66,40 @@ check:
 	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --check --ask-become-pass
 
 # ============================================================
-# 開発機から実行（git push → SSH → git pull → Ansible）
+# 開発機から実行（SSH → git pull → Ansible）
 # ============================================================
 # -A: エージェントフォワーディングでgit pullの認証を委譲
+# リモートは main ブランチで git pull するため、
+# PR マージ後に実行すること
 
-# git push してからリモートで pull + テストのみ実行
-deploy-test: push
+# リモートで pull + テストのみ実行
+deploy-test:
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make test'"
 
-# git push してからリモートで pull + セットアップ実行（sudoパスワードが必要）
-deploy-setup: push
+# リモートで pull + セットアップ実行（sudoパスワードが必要）
+deploy-setup:
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make setup'"
 
-# git push してからリモートで pull + CoreDNS デプロイ（sudoパスワードが必要）
-deploy-coredns: push
+# リモートで pull + CoreDNS デプロイ（Vaultパスワードが必要）
+deploy-coredns:
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make coredns'"
 
-# git push してからリモートで pull + Portainer デプロイ
-deploy-portainer: push
+# リモートで pull + Portainer デプロイ
+deploy-portainer:
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make portainer'"
 
-# git push してからリモートで pull + Traefik デプロイ
-deploy-traefik: push
+# リモートで pull + Traefik デプロイ（Vaultパスワードが必要）
+deploy-traefik:
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make traefik'"
 
-# git push してからリモートで pull + Immich デプロイ
-deploy-immich: push
+# リモートで pull + Immich デプロイ（Vaultパスワードが必要）
+deploy-immich:
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make immich'"
 
-# git push してからリモートで pull + Observability デプロイ
-deploy-observability: push
+# リモートで pull + Observability デプロイ（Vaultパスワードが必要）
+deploy-observability:
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make observability'"
 
-# git push してからリモートで pull + ドライラン
-deploy-check: push
+# リモートで pull + ドライラン
+deploy-check:
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make check'"
-
-# 現在のブランチを push する（deploy の前段階）
-push:
-	git push
