@@ -38,8 +38,8 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "sum(count_over_time({job=~\"$job\"} [$__auto])) by (job)",
-          "legendFormat": "{{job}}"
+          "expr": "sum(count_over_time({job=~\"$job\", container_name=~\"$container\"} |~ \"(?i)$level\" [$__auto])) by (container_name)",
+          "legendFormat": "{{container_name}}"
         }
       ]
     },
@@ -52,7 +52,7 @@
     },
     {
       "datasource": { "type": "loki", "uid": "${datasource}" },
-      "gridPos": { "h": 15, "w": 24, "x": 0, "y": 6 },
+      "gridPos": { "h": 18, "w": 24, "x": 0, "y": 6 },
       "id": 2,
       "title": "コンテナログ",
       "type": "logs",
@@ -68,21 +68,21 @@
       },
       "targets": [
         {
-          "expr": "{job=\"docker\", container_name=~\"$container\"}",
+          "expr": "{job=\"docker\", container_name=~\"$container\"} |~ \"(?i)$level\"",
           "refId": "A"
         }
       ]
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
       "id": 200,
       "title": "ホストログ",
       "type": "row"
     },
     {
       "datasource": { "type": "loki", "uid": "${datasource}" },
-      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 22 },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 25 },
       "id": 3,
       "title": "Syslog",
       "type": "logs",
@@ -98,14 +98,14 @@
       },
       "targets": [
         {
-          "expr": "{job=\"syslog\"}",
+          "expr": "{job=\"syslog\"} |~ \"(?i)$level\"",
           "refId": "A"
         }
       ]
     },
     {
       "datasource": { "type": "loki", "uid": "${datasource}" },
-      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 34 },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 37 },
       "id": 4,
       "title": "Auth Log",
       "type": "logs",
@@ -121,7 +121,7 @@
       },
       "targets": [
         {
-          "expr": "{job=\"authlog\"}",
+          "expr": "{job=\"authlog\"} |~ \"(?i)$level\"",
           "refId": "A"
         }
       ]
@@ -147,6 +147,7 @@
         "definition": "label_values(job)",
         "hide": 0,
         "includeAll": true,
+        "label": "ジョブ",
         "multi": true,
         "name": "job",
         "query": "label_values(job)",
@@ -159,18 +160,36 @@
         "definition": "label_values({job=\"docker\"}, container_name)",
         "hide": 0,
         "includeAll": true,
+        "label": "コンテナ",
         "multi": true,
         "name": "container",
         "query": "label_values({job=\"docker\"}, container_name)",
         "refresh": 2,
         "type": "query"
+      },
+      {
+        "allValue": ".+",
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "hide": 0,
+        "includeAll": true,
+        "label": "ログレベル",
+        "multi": false,
+        "name": "level",
+        "options": [
+          { "selected": false, "text": "error", "value": "error|fatal|panic|err" },
+          { "selected": false, "text": "warn", "value": "warn|warning" },
+          { "selected": false, "text": "info", "value": "info" },
+          { "selected": false, "text": "debug", "value": "debug" }
+        ],
+        "query": "error|fatal|panic|err : error,warn|warning : warn,info : info,debug : debug",
+        "type": "custom"
       }
     ]
   },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "Asia/Tokyo",
-  "title": "ログビューア",
+  "title": "2.Logs Dashboard",
   "uid": "log-viewer",
   "version": 1
 }
