@@ -2,6 +2,13 @@
 name: Deploy
 
 on:
+    workflow_dispatch:
+        inputs:
+            roles:
+                description: 'デプロイ対象ロール（カンマ区切り）'
+                required: true
+                default: 'coredns,traefik,portainer,immich,observability'
+                type: string
     push:
         branches: [main]
         paths:
@@ -24,7 +31,15 @@ jobs:
 
             - name: 変更されたロールを検出
               id: changes
+              env:
+                  INPUT_ROLES: ${{ inputs.roles }}
               run: |
+                  # 手動実行時は入力値をそのまま使用
+                  if [ -n "$INPUT_ROLES" ]; then
+                    echo "roles=$INPUT_ROLES" >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+
                   # CD対象ロール（setup: --ask-become-pass必要、test: テスト用のため除外）
                   if git rev-parse HEAD^2 >/dev/null 2>&1; then
                     # マージコミット: マージベースとの差分を取る
