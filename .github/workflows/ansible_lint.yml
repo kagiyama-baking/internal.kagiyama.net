@@ -8,6 +8,7 @@ on:
             - main
         paths:
             - 'ansible/**'
+            - '!ansible/**/*.md'
             - '.yamllint.yml'
             - '.ansible-lint'
             - '.github/workflows/ansible_lint.yml'
