@@ -1,0 +1,114 @@
+---
+name: Deploy
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - 'ansible/**'
+
+concurrency:
+    group: deploy-production
+    cancel-in-progress: false
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        environment:
+            name: production
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: 変更されたロールを検出
+              id: changes
+              run: |
+                  # CD対象ロール（setup: --ask-become-pass必要、test: テスト用のため除外）
+                  if git rev-parse HEAD^2 >/dev/null 2>&1; then
+                    # マージコミット: マージベースとの差分を取る
+                    MERGE_BASE=$(git merge-base HEAD^1 HEAD^2)
+                    CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD)
+                  else
+                    CHANGED=$(git diff --name-only HEAD~1 HEAD)
+                  fi
+
+                  # 全ロール対象のパスが変更された場合
+                  if echo "$CHANGED" | grep -qE '^ansible/(group_vars/|site\.yml)'; then
+                    echo "roles=coredns,traefik,portainer,immich,observability" >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+
+                  ROLES=""
+                  for role in coredns traefik portainer immich observability; do
+                    if echo "$CHANGED" | grep -q "ansible/roles/$role/"; then
+                      ROLES="${ROLES:+$ROLES,}$role"
+                    fi
+                  done
+                  echo "roles=$ROLES" >> "$GITHUB_OUTPUT"
+
+            - name: デプロイ対象なし
+              if: steps.changes.outputs.roles == ''
+              run: echo "デプロイ対象のロール変更なし、スキップ"
+
+            - name: Tailscale接続
+              if: steps.changes.outputs.roles != ''
+              uses: tailscale/github-action@v4
+              with:
+                  oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+                  oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+                  tags: tag:ci
+
+            - name: デプロイスクリプトを生成
+              if: steps.changes.outputs.roles != ''
+              run: |
+                  cat > /tmp/deploy.sh << 'SCRIPT'
+                  #!/bin/bash
+                  set -euo pipefail
+
+                  DEPLOY_DIR="$1"
+                  VAULT_PASSWORD_B64="$2"
+                  CHANGED_ROLES="$3"
+
+                  cd "$DEPLOY_DIR"
+                  git checkout main
+                  git pull origin main
+
+                  VAULT_FILE=$(mktemp /tmp/.vault_pass.XXXXXX)
+                  echo "$VAULT_PASSWORD_B64" | base64 -d > "$VAULT_FILE"
+                  chmod 600 "$VAULT_FILE"
+                  trap "rm -f '$VAULT_FILE'" EXIT
+
+                  cd ansible
+                  IFS=',' read -ra ROLES <<< "$CHANGED_ROLES"
+                  for role in "${ROLES[@]}"; do
+                    echo ">>> Deploying: $role"
+                    if [ "$role" = "portainer" ]; then
+                      ansible-playbook site.yml --tags "$role"
+                    else
+                      ansible-playbook site.yml --tags "$role" --vault-password-file "$VAULT_FILE"
+                    fi
+                  done
+                  SCRIPT
+                  chmod +x /tmp/deploy.sh
+
+            - name: デプロイ実行
+              if: steps.changes.outputs.roles != ''
+              env:
+                  VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+                  SSH_HOST: ${{ secrets.SSH_HOST }}
+                  SSH_USER: ${{ secrets.SSH_USER }}
+                  DEPLOY_DIR: ${{ secrets.DEPLOY_DIR }}
+                  CHANGED_ROLES: ${{ steps.changes.outputs.roles }}
+              run: |
+                  VAULT_B64=$(echo -n "${VAULT_PASSWORD}" | base64 -w 0)
+
+                  scp -o StrictHostKeyChecking=accept-new \
+                      -o ConnectTimeout=30 \
+                      /tmp/deploy.sh "${SSH_USER}@${SSH_HOST}":/tmp/deploy.sh
+
+                  ssh -o StrictHostKeyChecking=accept-new \
+                      -o ConnectTimeout=30 \
+                      "${SSH_USER}@${SSH_HOST}" \
+                      "bash /tmp/deploy.sh '${DEPLOY_DIR}' '${VAULT_B64}' '${CHANGED_ROLES}'; rm -f /tmp/deploy.sh"
