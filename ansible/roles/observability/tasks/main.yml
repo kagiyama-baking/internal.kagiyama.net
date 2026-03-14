@@ -76,11 +76,12 @@
       mode: '0644'
   notify: Observability を再起動
 
-- name: ダッシュボード JSON を配置
-  ansible.builtin.copy:
-      src: dashboards/
+- name: ダッシュボード JSON を配置（削除されたファイルも同期）
+  ansible.posix.synchronize:
+      src: '{{ role_path }}/files/dashboards/'
       dest: '{{ observability_install_dir }}/dashboards/'
-      mode: '0644'
+      delete: true
+  delegate_to: '{{ inventory_hostname }}'
   notify: Observability を再起動
 
 - name: Observability コンテナを起動
