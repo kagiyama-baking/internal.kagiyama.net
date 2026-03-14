@@ -34,9 +34,22 @@ jobs:
               env:
                   INPUT_ROLES: ${{ inputs.roles }}
               run: |
-                  # 手動実行時は入力値をそのまま使用
+                  ALLOWED_ROLES="coredns traefik portainer immich observability"
+
+                  # 手動実行時は入力値を許可リストで検証
                   if [ -n "$INPUT_ROLES" ]; then
-                    echo "roles=$INPUT_ROLES" >> "$GITHUB_OUTPUT"
+                    IFS=',' read -ra REQUESTED <<< "$INPUT_ROLES"
+                    VALIDATED=""
+                    for r in "${REQUESTED[@]}"; do
+                      r=$(echo "$r" | tr -d '[:space:]')
+                      if echo "$ALLOWED_ROLES" | grep -qw "$r"; then
+                        VALIDATED="${VALIDATED:+$VALIDATED,}$r"
+                      else
+                        echo "::error::不正なロール名: $r"
+                        exit 1
+                      fi
+                    done
+                    echo "roles=$VALIDATED" >> "$GITHUB_OUTPUT"
                     exit 0
                   fi
 
@@ -45,8 +58,10 @@ jobs:
                     # マージコミット: マージベースとの差分を取る
                     MERGE_BASE=$(git merge-base HEAD^1 HEAD^2)
                     CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD)
-                  else
-                    CHANGED=$(git diff --name-only HEAD~1 HEAD)
+                  elif ! CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null); then
+                    echo "::warning::前コミットとの差分を取得できません。全ロールをデプロイします。"
+                    echo "roles=coredns,traefik,portainer,immich,observability" >> "$GITHUB_OUTPUT"
+                    exit 0
                   fi
 
                   # 全ロール対象のパスが変更された場合
@@ -82,18 +97,13 @@ jobs:
                   #!/bin/bash
                   set -euo pipefail
 
-                  DEPLOY_DIR="$1"
-                  VAULT_PASSWORD_B64="$2"
-                  CHANGED_ROLES="$3"
-
                   cd "$DEPLOY_DIR"
                   git checkout main
                   git pull origin main
 
-                  VAULT_FILE=$(mktemp /tmp/.vault_pass.XXXXXX)
-                  echo "$VAULT_PASSWORD_B64" | base64 -d > "$VAULT_FILE"
+                  VAULT_FILE="/tmp/.vault_pass_ci"
                   chmod 600 "$VAULT_FILE"
-                  trap "rm -f '$VAULT_FILE'" EXIT
+                  trap 'rm -f "$VAULT_FILE"' EXIT
 
                   cd ansible
                   IFS=',' read -ra ROLES <<< "$CHANGED_ROLES"
@@ -117,13 +127,20 @@ jobs:
                   DEPLOY_DIR: ${{ secrets.DEPLOY_DIR }}
                   CHANGED_ROLES: ${{ steps.changes.outputs.roles }}
               run: |
-                  VAULT_B64=$(echo -n "${VAULT_PASSWORD}" | base64 -w 0)
+                  SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=30"
+                  REMOTE="${SSH_USER}@${SSH_HOST}"
+                  DEPLOY_ID="deploy_$(date +%s)_$$"
 
-                  scp -o StrictHostKeyChecking=accept-new \
-                      -o ConnectTimeout=30 \
-                      /tmp/deploy.sh "${SSH_USER}@${SSH_HOST}":/tmp/deploy.sh
+                  # Vaultパスワードをファイルとして転送（引数に含めない）
+                  VAULT_TMP=$(mktemp)
+                  echo -n "${VAULT_PASSWORD}" > "$VAULT_TMP"
+                  chmod 600 "$VAULT_TMP"
 
-                  ssh -o StrictHostKeyChecking=accept-new \
-                      -o ConnectTimeout=30 \
-                      "${SSH_USER}@${SSH_HOST}" \
-                      "bash /tmp/deploy.sh '${DEPLOY_DIR}' '${VAULT_B64}' '${CHANGED_ROLES}'; rm -f /tmp/deploy.sh"
+                  # デプロイスクリプトとVaultファイルを転送
+                  scp $SSH_OPTS "$VAULT_TMP" "${REMOTE}":/tmp/.vault_pass_ci
+                  scp $SSH_OPTS /tmp/deploy.sh "${REMOTE}":"/tmp/${DEPLOY_ID}.sh"
+                  rm -f "$VAULT_TMP"
+
+                  # 環境変数経由でパラメータを渡す（引数に含めない）
+                  ssh $SSH_OPTS "${REMOTE}" \
+                      "DEPLOY_DIR='${DEPLOY_DIR}' CHANGED_ROLES='${CHANGED_ROLES}' bash /tmp/${DEPLOY_ID}.sh; rm -f /tmp/${DEPLOY_ID}.sh"
