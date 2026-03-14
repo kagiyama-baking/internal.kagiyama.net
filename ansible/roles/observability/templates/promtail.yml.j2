@@ -23,8 +23,6 @@ scrape_configs:
       - action: replace
         replacement: docker
         target_label: job
-    pipeline_stages:
-      - docker: {}
 
   # ホストの syslog
   - job_name: syslog
