@@ -8,6 +8,7 @@
 ansible/
 ├── ansible.cfg                  # Ansible設定ファイル
 ├── site.yml                     # サイトプレイブック（エントリポイント）
+├── requirements.yml             # Ansibleコレクション定義（community.general, community.docker, ansible.posix）
 ├── inventories/
 │   └── local/
 │       └── hosts                # ローカル実行用インベントリ
@@ -81,6 +82,7 @@ ansible/
         │   ├── prometheus.yml.j2
         │   ├── loki.yml.j2
         │   ├── promtail.yml.j2
+        │   ├── grafana.env.j2     # Grafana 環境変数
         │   └── grafana/
         │       ├── datasources.yml.j2
         │       └── dashboards.yml.j2
@@ -106,11 +108,14 @@ ansible/
         └── main.yml
     ```
 
-2. `site.yml` の `roles` に追加する
+2. `site.yml` にプレイを追加する
 
     ```yaml
-    roles:
-        - <ロール名>
+    - name: <ロール名> デプロイ
+      hosts: local
+      tags: <ロール名>
+      roles:
+          - <ロール名>
     ```
 
 ## 共有変数（group_vars/local.yml）
