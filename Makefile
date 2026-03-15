@@ -9,6 +9,7 @@
 #   make deploy-traefik                 # Traefik をデプロイ（Vault必要）
 #   make deploy-immich                  # Immich をデプロイ（Vault必要）
 #   make deploy-observability           # Observability をデプロイ（Vault必要）
+#   make deploy-app                     # アプリケーション をデプロイ（Vault必要）
 #   make deploy-check                   # ドライラン
 #   make deploy-test SSH_HOST=my-server # ホスト名を指定して実行
 #
@@ -20,6 +21,7 @@
 #   make traefik                        # Traefik をデプロイ（Vault必要）
 #   make immich                         # Immich をデプロイ（Vault必要）
 #   make observability                  # Observability をデプロイ（Vault必要）
+#   make app                            # アプリケーション をデプロイ（Vault必要）
 #   make check                          # ドライラン
 # ==============================================================================
 
@@ -27,7 +29,7 @@ SSH_HOST  ?= internal.kagiyama.net
 REMOTE_DIR ?= ~/internal.kagiyama.net
 ANSIBLE_DIR = ansible
 
-.PHONY: test setup coredns portainer traefik immich observability check deploy-test deploy-setup deploy-coredns deploy-portainer deploy-traefik deploy-immich deploy-observability deploy-check
+.PHONY: test setup coredns portainer traefik immich observability app check deploy-test deploy-setup deploy-coredns deploy-portainer deploy-traefik deploy-immich deploy-observability deploy-app deploy-check
 
 # ============================================================
 # サーバ上で直接実行（Ansible）
@@ -60,6 +62,10 @@ immich:
 # Observability をデプロイする（Vaultパスワードが必要）
 observability:
 	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags observability --ask-vault-pass
+
+# アプリケーション をデプロイする（Vaultパスワードが必要）
+app:
+	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags app --ask-vault-pass
 
 # ドライラン（実際には変更を適用せず、実行内容を確認する）
 check:
@@ -99,6 +105,10 @@ deploy-immich:
 # リモートで pull + Observability デプロイ（Vaultパスワードが必要）
 deploy-observability:
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make observability'"
+
+# リモートで pull + アプリケーション デプロイ（Vaultパスワードが必要）
+deploy-app:
+	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make app'"
 
 # リモートで pull + ドライラン
 deploy-check:

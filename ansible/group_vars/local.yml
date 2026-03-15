@@ -6,3 +6,4 @@ traefik_network_name: traefik-public
 portainer_traefik_host: portainer.internal.kagiyama.net
 immich_traefik_host: immich.internal.kagiyama.net
 grafana_traefik_host: grafana.internal.kagiyama.net
+app_traefik_host: internal.kagiyama.net

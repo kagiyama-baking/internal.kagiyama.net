@@ -1,0 +1,21 @@
+---
+# アプリケーション（kawashiro-server）設定
+
+# インストールディレクトリ
+app_install_dir: /opt/app
+
+# Docker イメージ
+app_django_image: 'ghcr.io/kagiyama-baking/kawashiro-server/django-api:release'
+
+# Django API 設定
+app_django_port: 8000
+app_django_workers: 4
+app_django_timeout: 1200
+app_django_bind_address: '127.0.0.1'
+
+# TTS サービス接続先（Tailscale経由の外部ホスト）
+app_sbv2_service_url: http://sbv2-api:5000
+
+# リソース制限: django-api
+app_django_mem_limit: 512m
+app_django_cpus: 1.0
