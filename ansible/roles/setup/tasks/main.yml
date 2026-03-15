@@ -130,4 +130,5 @@
       - /opt/traefik
       - /opt/immich
       - /opt/observability
+      - /opt/app
   become: true

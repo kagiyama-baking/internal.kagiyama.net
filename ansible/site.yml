@@ -40,3 +40,9 @@
   tags: observability
   roles:
       - observability
+
+- name: アプリケーション デプロイ
+  hosts: local
+  tags: app
+  roles:
+      - app

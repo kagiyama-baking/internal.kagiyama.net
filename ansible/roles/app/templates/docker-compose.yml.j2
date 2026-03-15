@@ -1,0 +1,42 @@
+services:
+  # Django REST API サーバー
+  django-api:
+    image: "{{ app_django_image }}"
+    container_name: app-django-api
+    restart: unless-stopped
+    ports:
+      - "{{ app_django_bind_address }}:{{ app_django_port }}:8000"
+    env_file:
+      - .env
+    volumes:
+      - "{{ app_install_dir }}/django-api/staticfiles:/django_api/staticfiles"
+      - "{{ app_install_dir }}/django-api/db.sqlite3:/django_api/db.sqlite3"
+    networks:
+      - {{ traefik_network_name }}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`{{ app_traefik_host }}`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls=true"
+      - "traefik.http.routers.app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.app.loadbalancer.server.port=8000"
+      - "traefik.docker.network={{ traefik_network_name }}"
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn django_api.wsgi:application --bind 0.0.0.0:8000 --workers {{ app_django_workers }} --timeout {{ app_django_timeout }}"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: {{ app_django_mem_limit }}
+    cpus: {{ app_django_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  {{ traefik_network_name }}:
+    external: true

@@ -1,0 +1,45 @@
+---
+# ===== アプリケーション（kawashiro-server）デプロイ =====
+# 前提: setup ロールで /opt/app がログインユーザー所有で作成済み
+#       ログインユーザーは docker グループに所属済み
+
+- name: Vault 暗号化変数を読み込み
+  ansible.builtin.include_vars:
+      file: vault.yml
+
+- name: ボリュームディレクトリを作成
+  ansible.builtin.file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0755'
+  loop:
+      - "{{ app_install_dir }}/django-api"
+      - "{{ app_install_dir }}/django-api/staticfiles"
+
+- name: SQLite データベースファイルが存在することを確認
+  ansible.builtin.file:
+      path: "{{ app_install_dir }}/django-api/db.sqlite3"
+      state: touch
+      mode: '0644'
+      modification_time: preserve
+      access_time: preserve
+
+- name: 環境変数ファイルを配置
+  ansible.builtin.template:
+      src: env.j2
+      dest: '{{ app_install_dir }}/.env'
+      mode: '0600'
+  notify: App を再起動
+
+- name: Docker-compose.yml を配置
+  ansible.builtin.template:
+      src: docker-compose.yml.j2
+      dest: '{{ app_install_dir }}/docker-compose.yml'
+      mode: '0600'
+  notify: App を再起動
+
+- name: アプリケーションコンテナを起動
+  community.docker.docker_compose_v2:
+      project_src: '{{ app_install_dir }}'
+      state: present
+      pull: always
