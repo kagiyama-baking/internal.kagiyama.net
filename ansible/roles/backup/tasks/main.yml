@@ -87,23 +87,50 @@
   changed_when: false
   failed_when: false
 
-- name: Autorestic バイナリをインストール
+- name: Autorestic バイナリをダウンロード
   vars:
       backup_autorestic_base: >-
           https://github.com/cupcakearmy/autorestic/releases/download
       backup_autorestic_file: >-
-          autorestic_{{ backup_autorestic_version }}_linux_{{ backup_arch }}
+          autorestic_{{ backup_autorestic_version }}_linux_{{ backup_arch }}.bz2
       backup_autorestic_checksums: >-
-          {{ backup_autorestic_base }}/v{{ backup_autorestic_version }}/checksums.txt
+          {{ backup_autorestic_base }}/v{{ backup_autorestic_version }}/SHA256SUMS
   ansible.builtin.get_url:
       url: >-
           {{ backup_autorestic_base }}/v{{ backup_autorestic_version }}/{{ backup_autorestic_file }}
-      dest: "{{ backup_base_dir }}/bin/autorestic"
+      dest: "/tmp/autorestic_{{ backup_autorestic_version }}.bz2"
       checksum: "sha256:{{ backup_autorestic_checksums }}"
+      mode: '0644'
+  when: >-
+      backup_autorestic_installed.rc != 0 or
+      backup_autorestic_version not in (backup_autorestic_installed.stdout | default(''))
+
+- name: Autorestic バイナリを展開
+  ansible.builtin.command:
+      cmd: "bzip2 -df /tmp/autorestic_{{ backup_autorestic_version }}.bz2"
+  args:
+      creates: "/tmp/autorestic_{{ backup_autorestic_version }}"
+  when: >-
+      backup_autorestic_installed.rc != 0 or
+      backup_autorestic_version not in (backup_autorestic_installed.stdout | default(''))
+
+- name: Autorestic バイナリを配置
+  ansible.builtin.copy:
+      src: "/tmp/autorestic_{{ backup_autorestic_version }}"
+      dest: "{{ backup_base_dir }}/bin/autorestic"
+      remote_src: true
       mode: '0755'
   when: >-
       backup_autorestic_installed.rc != 0 or
       backup_autorestic_version not in (backup_autorestic_installed.stdout | default(''))
+
+- name: Autorestic の一時ファイルを削除
+  ansible.builtin.file:
+      path: "{{ item }}"
+      state: absent
+  loop:
+      - "/tmp/autorestic_{{ backup_autorestic_version }}.bz2"
+      - "/tmp/autorestic_{{ backup_autorestic_version }}"
 
 # ----- 設定ファイル・スクリプト配置 -----
 - name: Autorestic 設定ファイルを配置
