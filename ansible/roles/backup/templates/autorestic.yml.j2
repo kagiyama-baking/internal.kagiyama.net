@@ -3,7 +3,7 @@ version: 2
 backends:
   s3:
     type: s3
-    path: "s3:s3.{{ backup_aws_region }}.amazonaws.com/{{ backup_vault_s3_bucket }}/backups"
+    path: "s3.{{ backup_aws_region }}.amazonaws.com/{{ backup_vault_s3_bucket }}/backups"
     env:
       AWS_ACCESS_KEY_ID: "{{ backup_vault_aws_access_key_id }}"
       AWS_SECRET_ACCESS_KEY: "{{ backup_vault_aws_secret_access_key }}"
