@@ -299,8 +299,11 @@ make deploy-test SSH_HOST=my-server
 ### 手動実行
 
 ```bash
-# バックアップを手動実行
-/opt/backup/backup.sh
+# サーバ上で直接実行
+make backup-run
+
+# 開発機からリモート実行
+make deploy-backup-run
 
 # ログを確認（syslog に出力される）
 journalctl -t autorestic-backup
@@ -309,15 +312,11 @@ journalctl -t autorestic-backup
 ### 状態確認
 
 ```bash
-# S3 リポジトリの接続確認
-cd /opt/backup
-PATH=/opt/backup/bin:$PATH autorestic check -c .autorestic.yml
+# サーバ上で直接実行
+make backup-status
 
-# スナップショット一覧を表示
-PATH=/opt/backup/bin:$PATH autorestic exec -b s3 -c .autorestic.yml -v -- snapshots
-
-# cron ジョブの登録を確認
-crontab -l
+# 開発機からリモート実行
+make deploy-backup-status
 ```
 
 ### リストア
