@@ -17,6 +17,12 @@
 - [デプロイ](#デプロイ)
     - [開発機からのデプロイ](#開発機からのデプロイ)
     - [サーバ上で直接実行](#サーバ上で直接実行)
+- [バックアップ](#バックアップ)
+    - [概要](#バックアップ概要)
+    - [バックアップ対象](#バックアップ対象)
+    - [手動実行](#手動実行)
+    - [状態確認](#状態確認)
+    - [リストア](#リストア)
 - [CI/CD](#cicd)
     - [CI: Ansible Lint](#ci-ansible-lint)
     - [CD: 自動デプロイ](#cd-自動デプロイ)
@@ -266,6 +272,62 @@ make deploy-test SSH_HOST=my-server
 | `make app`           | アプリケーション をデプロイ（Vault パスワード入力あり） |
 | `make backup`        | バックアップ設定 をデプロイ（Vault パスワード入力あり） |
 | `make check`         | ドライラン（変更を適用せず確認のみ）                 |
+
+## バックアップ
+
+### バックアップ概要
+
+[autorestic](https://autorestic.vercel.app/)（[restic](https://restic.net/) のラッパー）を使用して、サーバ上の重要データを AWS S3 に自動バックアップしています。
+
+- **スケジュール**: 毎日午前 3:00（cron）
+- **保存先**: AWS S3
+- **リテンション**: 日次 7 世代
+- **暗号化**: restic による AES-256 暗号化（S3 上のデータは全て暗号化済み）
+
+### バックアップ対象
+
+| Location | 内容 | バックアップ方法 |
+|----------|------|------------------|
+| `immich-db` | Immich の PostgreSQL 全データベース | `docker exec pg_dumpall` でダンプ後にバックアップ |
+| `immich-library` | Immich の写真・動画ファイル（`/opt/immich/library`） | ディレクトリを直接バックアップ |
+| `app-db` | kawashiro-server の SQLite データベース | `sqlite3 .backup` でコピー後にバックアップ |
+
+### 手動実行
+
+```bash
+# バックアップを手動実行
+/opt/backup/backup.sh
+
+# ログを確認（syslog に出力される）
+journalctl -t autorestic-backup
+```
+
+### 状態確認
+
+```bash
+# S3 リポジトリの接続確認
+cd /opt/backup
+PATH=/opt/backup/bin:$PATH autorestic check -c .autorestic.yml
+
+# スナップショット一覧を表示
+PATH=/opt/backup/bin:$PATH autorestic exec -b s3 -c .autorestic.yml -- snapshots
+
+# cron ジョブの登録を確認
+crontab -l
+```
+
+### リストア
+
+```bash
+# 特定の location をリストアする（例: app-db を /tmp/restore に復元）
+cd /opt/backup
+PATH=/opt/backup/bin:$PATH autorestic restore -l app-db -c .autorestic.yml --to /tmp/restore
+
+# 特定のスナップショットを指定してリストア
+PATH=/opt/backup/bin:$PATH autorestic restore -l app-db -c .autorestic.yml --to /tmp/restore --restic-flags "--tag ar:location:app-db"
+```
+
+> **Note:** リストアは既存のファイルを上書きする可能性があります。本番データに対して実行する場合は、必ず一時ディレクトリに復元して内容を確認してからコピーしてください。
 
 ## CI/CD
 
