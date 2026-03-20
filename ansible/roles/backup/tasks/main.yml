@@ -1,6 +1,8 @@
 ---
 # ===== バックアップ設定 =====
-# 前提: setup ロールで /opt/backup がログインユーザー所有で作成済み
+# 前提: setup ロールで以下が完了済み
+#   - /opt/backup がログインユーザー所有で作成済み
+#   - sqlite3, bzip2 パッケージがインストール済み
 
 - name: Vault 暗号化変数を読み込み
   ansible.builtin.include_vars:
@@ -13,17 +15,21 @@
           {{ 'arm64' if ansible_facts['architecture'] == 'aarch64'
           else 'amd64' }}
 
-# ----- 依存パッケージ -----
-- name: SQLite3 をインストール
-  ansible.builtin.apt:
-      name: sqlite3
-      state: present
-  become: true
+# ----- ディレクトリ作成 -----
+- name: バックアップ用ディレクトリを作成
+  ansible.builtin.file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0755'
+  loop:
+      - "{{ backup_base_dir }}/bin"
+      - "{{ backup_dump_dir }}/immich"
+      - "{{ backup_dump_dir }}/app"
 
 # ----- restic インストール -----
 - name: Restic のバージョンを確認
   ansible.builtin.command:
-      cmd: /usr/local/bin/restic version
+      cmd: "{{ backup_base_dir }}/bin/restic version"
   register: backup_restic_installed
   changed_when: false
   failed_when: false
@@ -58,10 +64,9 @@
 - name: Restic バイナリを配置
   ansible.builtin.copy:
       src: "/tmp/restic_{{ backup_restic_version }}"
-      dest: /usr/local/bin/restic
+      dest: "{{ backup_base_dir }}/bin/restic"
       remote_src: true
       mode: '0755'
-  become: true
   when: >-
       backup_restic_installed.rc != 0 or
       backup_restic_version not in (backup_restic_installed.stdout | default(''))
@@ -77,7 +82,7 @@
 # ----- autorestic インストール -----
 - name: Autorestic のバージョンを確認
   ansible.builtin.command:
-      cmd: /usr/local/bin/autorestic version
+      cmd: "{{ backup_base_dir }}/bin/autorestic version"
   register: backup_autorestic_installed
   changed_when: false
   failed_when: false
@@ -93,26 +98,12 @@
   ansible.builtin.get_url:
       url: >-
           {{ backup_autorestic_base }}/v{{ backup_autorestic_version }}/{{ backup_autorestic_file }}
-      dest: /usr/local/bin/autorestic
+      dest: "{{ backup_base_dir }}/bin/autorestic"
       checksum: "sha256:{{ backup_autorestic_checksums }}"
       mode: '0755'
-  become: true
   when: >-
       backup_autorestic_installed.rc != 0 or
       backup_autorestic_version not in (backup_autorestic_installed.stdout | default(''))
-
-# ----- ディレクトリ作成 -----
-- name: ダンプディレクトリを作成
-  ansible.builtin.file:
-      path: "{{ item }}"
-      state: directory
-      owner: "{{ ansible_facts['user_id'] }}"
-      group: "{{ ansible_facts['user_id'] }}"
-      mode: '0755'
-  loop:
-      - "{{ backup_dump_dir }}/immich"
-      - "{{ backup_dump_dir }}/app"
-  become: true
 
 # ----- 設定ファイル・スクリプト配置 -----
 - name: Autorestic 設定ファイルを配置
@@ -131,8 +122,10 @@
 - name: Autorestic check でリポジトリを初期化
   ansible.builtin.command:
       cmd: >-
-          autorestic check
+          {{ backup_base_dir }}/bin/autorestic check
           -c "{{ backup_base_dir }}/.autorestic.yml"
+  environment:
+      RESTIC_BINARY: "{{ backup_base_dir }}/bin/restic"
   register: backup_autorestic_check
   changed_when: >-
       'Initializing' in backup_autorestic_check.stdout

@@ -2,7 +2,10 @@
 set -euo pipefail
 
 LOG_TAG="autorestic-backup"
-CONFIG="{{ backup_base_dir }}/.autorestic.yml"
+BACKUP_DIR="{{ backup_base_dir }}"
+CONFIG="${BACKUP_DIR}/.autorestic.yml"
+AUTORESTIC="${BACKUP_DIR}/bin/autorestic"
+export RESTIC_BINARY="${BACKUP_DIR}/bin/restic"
 
 log_info() {
     logger -t "$LOG_TAG" "$1"
@@ -37,12 +40,12 @@ log_info "SQLite backup completed"
 # --- autorestic バックアップ実行 ---
 log_info "Starting autorestic backup"
 cd "{{ backup_base_dir }}"
-autorestic backup -a -c "$CONFIG"
+"$AUTORESTIC" backup -a -c "$CONFIG"
 log_info "autorestic backup completed"
 
 # --- 古いスナップショットの削除 ---
 log_info "Pruning old snapshots"
-autorestic forget -a --prune -c "$CONFIG"
+"$AUTORESTIC" forget -a --prune -c "$CONFIG"
 log_info "Prune completed"
 
 log_info "Backup completed successfully"
