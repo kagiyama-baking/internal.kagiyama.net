@@ -310,7 +310,7 @@ cd /opt/backup
 PATH=/opt/backup/bin:$PATH autorestic check -c .autorestic.yml
 
 # スナップショット一覧を表示
-PATH=/opt/backup/bin:$PATH autorestic exec -b s3 -c .autorestic.yml -- snapshots
+PATH=/opt/backup/bin:$PATH autorestic exec -b s3 -c .autorestic.yml -v -- snapshots
 
 # cron ジョブの登録を確認
 crontab -l
