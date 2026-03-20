@@ -115,6 +115,15 @@
       append: true
   become: true
 
+# ===== バックアップ依存パッケージ =====
+- name: バックアップ用パッケージをインストール
+  ansible.builtin.apt:
+      name:
+          - sqlite3
+          - bzip2
+      state: present
+  become: true
+
 # ===== アプリケーションディレクトリ =====
 - name: /opt配下のアプリケーションディレクトリを作成
   ansible.builtin.file:
