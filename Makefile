@@ -11,6 +11,8 @@
 #   make deploy-observability           # Observability をデプロイ（Vault必要）
 #   make deploy-app                     # アプリケーション をデプロイ（Vault必要）
 #   make deploy-backup                  # バックアップ設定 をデプロイ（Vault必要）
+#   make deploy-backup-status           # バックアップ状態を確認
+#   make deploy-backup-run              # バックアップを手動実行
 #   make deploy-check                   # ドライラン
 #   make deploy-test SSH_HOST=my-server # ホスト名を指定して実行
 #
@@ -24,6 +26,8 @@
 #   make observability                  # Observability をデプロイ（Vault必要）
 #   make app                            # アプリケーション をデプロイ（Vault必要）
 #   make backup                         # バックアップ設定 をデプロイ（Vault必要）
+#   make backup-status                  # バックアップ状態を確認
+#   make backup-run                     # バックアップを手動実行
 #   make check                          # ドライラン
 # ==============================================================================
 
@@ -31,7 +35,7 @@ SSH_HOST  ?= internal.kagiyama.net
 REMOTE_DIR ?= ~/internal.kagiyama.net
 ANSIBLE_DIR = ansible
 
-.PHONY: test setup coredns portainer traefik immich observability app backup check deploy-test deploy-setup deploy-coredns deploy-portainer deploy-traefik deploy-immich deploy-observability deploy-app deploy-backup deploy-check
+.PHONY: test setup coredns portainer traefik immich observability app backup backup-status backup-run check deploy-test deploy-setup deploy-coredns deploy-portainer deploy-traefik deploy-immich deploy-observability deploy-app deploy-backup deploy-backup-status deploy-backup-run deploy-check
 
 # ============================================================
 # サーバ上で直接実行（Ansible）
@@ -72,6 +76,21 @@ app:
 # バックアップ設定 をデプロイする（Vaultパスワードが必要）
 backup:
 	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags backup --ask-vault-pass
+
+# バックアップ状態を確認する（S3接続・スナップショット一覧・cronジョブ）
+backup-status:
+	@echo "=== S3 リポジトリ接続確認 ==="
+	@cd /opt/backup && PATH=/opt/backup/bin:$$PATH autorestic check -c .autorestic.yml
+	@echo ""
+	@echo "=== スナップショット一覧 ==="
+	@cd /opt/backup && PATH=/opt/backup/bin:$$PATH autorestic exec -b s3 -c .autorestic.yml -v -- snapshots
+	@echo ""
+	@echo "=== cron ジョブ ==="
+	@crontab -l 2>/dev/null | grep -A1 autorestic-backup || echo "(未登録)"
+
+# バックアップを手動実行する
+backup-run:
+	/opt/backup/backup.sh
 
 # ドライラン（実際には変更を適用せず、実行内容を確認する）
 check:
@@ -119,6 +138,14 @@ deploy-app:
 # リモートで pull + バックアップ設定 デプロイ（Vaultパスワードが必要）
 deploy-backup:
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make backup'"
+
+# リモートでバックアップ状態を確認
+deploy-backup-status:
+	ssh -t $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && make backup-status'"
+
+# リモートでバックアップを手動実行
+deploy-backup-run:
+	ssh -t $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && make backup-run'"
 
 # リモートで pull + ドライラン
 deploy-check:

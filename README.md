@@ -248,6 +248,8 @@ REMOTE_DIR ?= ~/internal.kagiyama.net  # サーバ上のリポジトリパス
 | `make deploy-observability` | Observability をデプロイ（Vault パスワード入力あり） |
 | `make deploy-app`           | アプリケーション をデプロイ（Vault パスワード入力あり） |
 | `make deploy-backup`        | バックアップ設定 をデプロイ（Vault パスワード入力あり） |
+| `make deploy-backup-status` | バックアップ状態を確認                               |
+| `make deploy-backup-run`    | バックアップを手動実行                               |
 | `make deploy-check`         | ドライラン（変更を適用せず確認のみ）                 |
 
 ホスト名を一時的に変更して実行することもできます。
@@ -271,6 +273,8 @@ make deploy-test SSH_HOST=my-server
 | `make observability` | Observability をデプロイ（Vault パスワード入力あり） |
 | `make app`           | アプリケーション をデプロイ（Vault パスワード入力あり） |
 | `make backup`        | バックアップ設定 をデプロイ（Vault パスワード入力あり） |
+| `make backup-status` | バックアップ状態を確認                               |
+| `make backup-run`    | バックアップを手動実行                               |
 | `make check`         | ドライラン（変更を適用せず確認のみ）                 |
 
 ## バックアップ
