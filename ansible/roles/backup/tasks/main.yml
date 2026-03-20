@@ -1,0 +1,147 @@
+---
+# ===== バックアップ設定 =====
+# 前提: setup ロールで /opt/backup がログインユーザー所有で作成済み
+
+- name: Vault 暗号化変数を読み込み
+  ansible.builtin.include_vars:
+      file: vault.yml
+
+# ----- 共通変数 -----
+- name: アーキテクチャを判定
+  ansible.builtin.set_fact:
+      backup_arch: >-
+          {{ 'arm64' if ansible_facts['architecture'] == 'aarch64'
+          else 'amd64' }}
+
+# ----- 依存パッケージ -----
+- name: SQLite3 をインストール
+  ansible.builtin.apt:
+      name: sqlite3
+      state: present
+  become: true
+
+# ----- restic インストール -----
+- name: Restic のバージョンを確認
+  ansible.builtin.command:
+      cmd: /usr/local/bin/restic version
+  register: backup_restic_installed
+  changed_when: false
+  failed_when: false
+
+- name: Restic バイナリをダウンロード
+  vars:
+      backup_restic_base: >-
+          https://github.com/restic/restic/releases/download
+      backup_restic_file: >-
+          restic_{{ backup_restic_version }}_linux_{{ backup_arch }}.bz2
+      backup_restic_checksums: >-
+          {{ backup_restic_base }}/v{{ backup_restic_version }}/SHA256SUMS
+  ansible.builtin.get_url:
+      url: >-
+          {{ backup_restic_base }}/v{{ backup_restic_version }}/{{ backup_restic_file }}
+      dest: "/tmp/restic_{{ backup_restic_version }}.bz2"
+      checksum: "sha256:{{ backup_restic_checksums }}"
+      mode: '0644'
+  when: >-
+      backup_restic_installed.rc != 0 or
+      backup_restic_version not in (backup_restic_installed.stdout | default(''))
+
+- name: Restic バイナリを展開
+  ansible.builtin.command:
+      cmd: "bzip2 -df /tmp/restic_{{ backup_restic_version }}.bz2"
+  args:
+      creates: "/tmp/restic_{{ backup_restic_version }}"
+  when: >-
+      backup_restic_installed.rc != 0 or
+      backup_restic_version not in (backup_restic_installed.stdout | default(''))
+
+- name: Restic バイナリを配置
+  ansible.builtin.copy:
+      src: "/tmp/restic_{{ backup_restic_version }}"
+      dest: /usr/local/bin/restic
+      remote_src: true
+      mode: '0755'
+  become: true
+  when: >-
+      backup_restic_installed.rc != 0 or
+      backup_restic_version not in (backup_restic_installed.stdout | default(''))
+
+- name: Restic の一時ファイルを削除
+  ansible.builtin.file:
+      path: "{{ item }}"
+      state: absent
+  loop:
+      - "/tmp/restic_{{ backup_restic_version }}.bz2"
+      - "/tmp/restic_{{ backup_restic_version }}"
+
+# ----- autorestic インストール -----
+- name: Autorestic のバージョンを確認
+  ansible.builtin.command:
+      cmd: /usr/local/bin/autorestic version
+  register: backup_autorestic_installed
+  changed_when: false
+  failed_when: false
+
+- name: Autorestic バイナリをインストール
+  vars:
+      backup_autorestic_base: >-
+          https://github.com/cupcakearmy/autorestic/releases/download
+      backup_autorestic_file: >-
+          autorestic_{{ backup_autorestic_version }}_linux_{{ backup_arch }}
+      backup_autorestic_checksums: >-
+          {{ backup_autorestic_base }}/v{{ backup_autorestic_version }}/checksums.txt
+  ansible.builtin.get_url:
+      url: >-
+          {{ backup_autorestic_base }}/v{{ backup_autorestic_version }}/{{ backup_autorestic_file }}
+      dest: /usr/local/bin/autorestic
+      checksum: "sha256:{{ backup_autorestic_checksums }}"
+      mode: '0755'
+  become: true
+  when: >-
+      backup_autorestic_installed.rc != 0 or
+      backup_autorestic_version not in (backup_autorestic_installed.stdout | default(''))
+
+# ----- ディレクトリ作成 -----
+- name: ダンプディレクトリを作成
+  ansible.builtin.file:
+      path: "{{ item }}"
+      state: directory
+      owner: "{{ ansible_facts['user_id'] }}"
+      group: "{{ ansible_facts['user_id'] }}"
+      mode: '0755'
+  loop:
+      - "{{ backup_dump_dir }}/immich"
+      - "{{ backup_dump_dir }}/app"
+  become: true
+
+# ----- 設定ファイル・スクリプト配置 -----
+- name: Autorestic 設定ファイルを配置
+  ansible.builtin.template:
+      src: autorestic.yml.j2
+      dest: "{{ backup_base_dir }}/.autorestic.yml"
+      mode: '0600'
+
+- name: バックアップスクリプトを配置
+  ansible.builtin.template:
+      src: backup.sh.j2
+      dest: "{{ backup_base_dir }}/backup.sh"
+      mode: '0700'
+
+# ----- restic リポジトリ初期化 -----
+- name: Autorestic check でリポジトリを初期化
+  ansible.builtin.command:
+      cmd: >-
+          autorestic check
+          -c "{{ backup_base_dir }}/.autorestic.yml"
+  register: backup_autorestic_check
+  changed_when: >-
+      'Initializing' in backup_autorestic_check.stdout
+      or 'created' in backup_autorestic_check.stdout
+
+# ----- cron ジョブ登録 -----
+- name: バックアップ cron ジョブを登録
+  ansible.builtin.cron:
+      name: autorestic-backup
+      minute: '{{ backup_cron_minute }}'
+      hour: '{{ backup_cron_hour }}'
+      job: '{{ backup_base_dir }}/backup.sh'

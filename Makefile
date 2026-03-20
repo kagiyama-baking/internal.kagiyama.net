@@ -10,6 +10,7 @@
 #   make deploy-immich                  # Immich をデプロイ（Vault必要）
 #   make deploy-observability           # Observability をデプロイ（Vault必要）
 #   make deploy-app                     # アプリケーション をデプロイ（Vault必要）
+#   make deploy-backup                  # バックアップ設定 をデプロイ（Vault必要）
 #   make deploy-check                   # ドライラン
 #   make deploy-test SSH_HOST=my-server # ホスト名を指定して実行
 #
@@ -22,6 +23,7 @@
 #   make immich                         # Immich をデプロイ（Vault必要）
 #   make observability                  # Observability をデプロイ（Vault必要）
 #   make app                            # アプリケーション をデプロイ（Vault必要）
+#   make backup                         # バックアップ設定 をデプロイ（Vault必要）
 #   make check                          # ドライラン
 # ==============================================================================
 
@@ -29,7 +31,7 @@ SSH_HOST  ?= internal.kagiyama.net
 REMOTE_DIR ?= ~/internal.kagiyama.net
 ANSIBLE_DIR = ansible
 
-.PHONY: test setup coredns portainer traefik immich observability app check deploy-test deploy-setup deploy-coredns deploy-portainer deploy-traefik deploy-immich deploy-observability deploy-app deploy-check
+.PHONY: test setup coredns portainer traefik immich observability app backup check deploy-test deploy-setup deploy-coredns deploy-portainer deploy-traefik deploy-immich deploy-observability deploy-app deploy-backup deploy-check
 
 # ============================================================
 # サーバ上で直接実行（Ansible）
@@ -66,6 +68,10 @@ observability:
 # アプリケーション をデプロイする（Vaultパスワードが必要）
 app:
 	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags app --ask-vault-pass
+
+# バックアップ設定 をデプロイする（Vaultパスワードが必要）
+backup:
+	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags backup --ask-vault-pass
 
 # ドライラン（実際には変更を適用せず、実行内容を確認する）
 check:
@@ -109,6 +115,10 @@ deploy-observability:
 # リモートで pull + アプリケーション デプロイ（Vaultパスワードが必要）
 deploy-app:
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make app'"
+
+# リモートで pull + バックアップ設定 デプロイ（Vaultパスワードが必要）
+deploy-backup:
+	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make backup'"
 
 # リモートで pull + ドライラン
 deploy-check:

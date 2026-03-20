@@ -1,0 +1,23 @@
+---
+# restic / autorestic バージョン
+backup_restic_version: '0.17.3'
+backup_autorestic_version: '1.8.3'
+
+# ディレクトリ
+backup_base_dir: /opt/backup
+backup_dump_dir: /opt/backup/dumps
+
+# リテンション（日次保持世代数）
+backup_retention_daily: 7
+
+# cron スケジュール
+backup_cron_hour: '3'
+backup_cron_minute: '0'
+
+# immich 関連
+backup_immich_db_container: immich-database
+backup_immich_db_user: postgres
+backup_immich_library_dir: /opt/immich/library
+
+# app 関連
+backup_app_db_path: /opt/app/django-api/db.sqlite3

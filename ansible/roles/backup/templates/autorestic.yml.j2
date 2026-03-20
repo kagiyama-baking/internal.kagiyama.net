@@ -1,0 +1,32 @@
+version: 2
+
+backends:
+  s3:
+    type: s3
+    path: "s3:s3.amazonaws.com/{{ backup_vault_s3_bucket }}/backups"
+    env:
+      AWS_ACCESS_KEY_ID: "{{ backup_vault_aws_access_key_id }}"
+      AWS_SECRET_ACCESS_KEY: "{{ backup_vault_aws_secret_access_key }}"
+      RESTIC_PASSWORD: "{{ backup_vault_restic_password }}"
+
+locations:
+  immich-db:
+    from: "{{ backup_dump_dir }}/immich"
+    to: s3
+    options:
+      forget:
+        keep-daily: "{{ backup_retention_daily }}"
+
+  immich-library:
+    from: "{{ backup_immich_library_dir }}"
+    to: s3
+    options:
+      forget:
+        keep-daily: "{{ backup_retention_daily }}"
+
+  app-db:
+    from: "{{ backup_dump_dir }}/app"
+    to: s3
+    options:
+      forget:
+        keep-daily: "{{ backup_retention_daily }}"
