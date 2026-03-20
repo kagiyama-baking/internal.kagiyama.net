@@ -46,3 +46,9 @@
   tags: app
   roles:
       - app
+
+- name: バックアップ設定
+  hosts: local
+  tags: backup
+  roles:
+      - backup

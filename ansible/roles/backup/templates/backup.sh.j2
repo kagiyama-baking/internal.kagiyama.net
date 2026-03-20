@@ -1,0 +1,48 @@
+#!/bin/bash
+set -euo pipefail
+
+LOG_TAG="autorestic-backup"
+CONFIG="{{ backup_base_dir }}/.autorestic.yml"
+
+log_info() {
+    logger -t "$LOG_TAG" "$1"
+}
+
+log_error() {
+    logger -t "$LOG_TAG" -p user.err "$1"
+}
+
+cleanup() {
+    log_info "Cleaning up dump files"
+    rm -f "{{ backup_dump_dir }}/immich/pg_dump.sql"
+    rm -f "{{ backup_dump_dir }}/app/db.sqlite3"
+}
+
+trap 'log_error "Backup failed at line $LINENO"; cleanup' ERR
+trap cleanup EXIT
+
+# --- Pre-backup: PostgreSQL ダンプ ---
+log_info "Starting PostgreSQL dump"
+docker exec {{ backup_immich_db_container }} \
+    pg_dumpall -U {{ backup_immich_db_user }} \
+    > "{{ backup_dump_dir }}/immich/pg_dump.sql"
+log_info "PostgreSQL dump completed"
+
+# --- Pre-backup: SQLite バックアップ ---
+log_info "Starting SQLite backup"
+sqlite3 "{{ backup_app_db_path }}" \
+    ".backup '{{ backup_dump_dir }}/app/db.sqlite3'"
+log_info "SQLite backup completed"
+
+# --- autorestic バックアップ実行 ---
+log_info "Starting autorestic backup"
+cd "{{ backup_base_dir }}"
+autorestic backup -a -c "$CONFIG"
+log_info "autorestic backup completed"
+
+# --- 古いスナップショットの削除 ---
+log_info "Pruning old snapshots"
+autorestic forget -a --prune -c "$CONFIG"
+log_info "Prune completed"
+
+log_info "Backup completed successfully"
