@@ -152,7 +152,7 @@
           {{ backup_base_dir }}/bin/autorestic check
           -c "{{ backup_base_dir }}/.autorestic.yml"
   environment:
-      RESTIC_BINARY: "{{ backup_base_dir }}/bin/restic"
+      PATH: "{{ backup_base_dir }}/bin:{{ ansible_env.PATH }}"
   register: backup_autorestic_check
   changed_when: >-
       'Initializing' in backup_autorestic_check.stdout
