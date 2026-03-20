@@ -131,4 +131,5 @@
       - /opt/immich
       - /opt/observability
       - /opt/app
+      - /opt/backup
   become: true
