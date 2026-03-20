@@ -3,6 +3,9 @@
 backup_restic_version: '0.17.3'
 backup_autorestic_version: '1.8.3'
 
+# AWS リージョン
+backup_aws_region: ap-northeast-1
+
 # ディレクトリ
 backup_base_dir: /opt/backup
 backup_dump_dir: /opt/backup/dumps
