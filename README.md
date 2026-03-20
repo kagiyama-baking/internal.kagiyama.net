@@ -318,16 +318,25 @@ crontab -l
 
 ### リストア
 
-```bash
-# 特定の location をリストアする（例: app-db を /tmp/restore に復元）
-cd /opt/backup
-PATH=/opt/backup/bin:$PATH autorestic restore -l app-db -c .autorestic.yml --to /tmp/restore
+restic は空でないディレクトリへのリストアを拒否するため、location ごとに別ディレクトリに復元します。
 
-# 特定のスナップショットを指定してリストア
-PATH=/opt/backup/bin:$PATH autorestic restore -l app-db -c .autorestic.yml --to /tmp/restore --restic-flags "--tag ar:location:app-db"
+```bash
+cd /opt/backup
+
+# 1. 一時ディレクトリに復元（location ごとに分ける）
+PATH=/opt/backup/bin:$PATH autorestic restore -l app-db -c .autorestic.yml --to /tmp/restore-app
+PATH=/opt/backup/bin:$PATH autorestic restore -l immich-db -c .autorestic.yml --to /tmp/restore-immich-db
+PATH=/opt/backup/bin:$PATH autorestic restore -l immich-library -c .autorestic.yml --to /tmp/restore-immich-lib
+
+# 2. 復元されたファイルを確認（バックアップ時の絶対パス構造で展開される）
+ls /tmp/restore-app/opt/backup/dumps/app/db.sqlite3
+ls /tmp/restore-immich-db/opt/backup/dumps/immich/pg_dump.sql
+ls /tmp/restore-immich-lib/opt/immich/library/
+
+# 3. 内容を確認してから本番パスにコピー
 ```
 
-> **Note:** リストアは既存のファイルを上書きする可能性があります。本番データに対して実行する場合は、必ず一時ディレクトリに復元して内容を確認してからコピーしてください。
+> **Note:** 復元先にはバックアップ時のフルパス構造がそのまま展開されます。必ず一時ディレクトリに復元し、内容を確認してから本番データにコピーしてください。
 
 ## CI/CD
 
