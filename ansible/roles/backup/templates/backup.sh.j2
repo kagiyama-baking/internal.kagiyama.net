@@ -16,7 +16,7 @@ log_error() {
 
 cleanup() {
     log_info "Cleaning up dump files"
-    rm -f "{{ backup_dump_dir }}/immich/pg_dump.sql"
+    rm -f "{{ backup_dump_dir }}/immich/immich.sql"
     rm -f "{{ backup_dump_dir }}/app/db.sqlite3"
 }
 
@@ -26,8 +26,8 @@ trap cleanup EXIT
 # --- Pre-backup: PostgreSQL ダンプ ---
 log_info "Starting PostgreSQL dump"
 docker exec {{ backup_immich_db_container }} \
-    pg_dumpall -U {{ backup_immich_db_user }} \
-    > "{{ backup_dump_dir }}/immich/pg_dump.sql"
+    pg_dump -U {{ backup_immich_db_user }} {{ backup_immich_db_name }} \
+    > "{{ backup_dump_dir }}/immich/immich.sql"
 log_info "PostgreSQL dump completed"
 
 # --- Pre-backup: SQLite バックアップ ---

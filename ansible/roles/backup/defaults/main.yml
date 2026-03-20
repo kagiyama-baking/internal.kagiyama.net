@@ -20,6 +20,7 @@ backup_cron_minute: '0'
 # immich 関連
 backup_immich_db_container: immich-database
 backup_immich_db_user: postgres
+backup_immich_db_name: immich
 backup_immich_library_dir: /opt/immich/library
 
 # app 関連
