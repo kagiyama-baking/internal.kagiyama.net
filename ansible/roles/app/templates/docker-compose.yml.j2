@@ -14,7 +14,7 @@ services:
       - app-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.app-django.rule=Host(`{{ app_traefik_host }}`) && (PathPrefix(`/admin`) || PathPrefix(`/swagger`) || PathPrefix(`/static`))"
+      - "traefik.http.routers.app-django.rule=Host(`{{ app_traefik_host }}`) && (PathPrefix(`/admin`) || PathPrefix(`/swagger`) || PathPrefix(`/schema`) || PathPrefix(`/redoc`) || PathPrefix(`/static`))"
       - "traefik.http.routers.app-django.entrypoints=websecure"
       - "traefik.http.routers.app-django.tls=true"
       - "traefik.http.routers.app-django.tls.certresolver=letsencrypt"
@@ -62,6 +62,10 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
     mem_limit: {{ app_frontend_mem_limit }}
     cpus: {{ app_frontend_cpus }}
     logging:
