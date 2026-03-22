@@ -7,11 +7,13 @@ groups:
     interval: 1m
     rules:
       # --- コンテナダウン検知 ---
-      # cAdvisor の container_last_seen から経過秒数を算出
-      # PromQL 閾値 300s + Grafana pending 5m = 実質10分ダウンで発火
-      - uid: container-down
-        title: コンテナダウン
-        condition: C
+      # absent_over_time で10分間メトリクスが不在のコンテナを検知
+      # コンテナ停止時に cAdvisor がメトリクス報告を停止するため、
+      # 値の大小ではなくメトリクスの不在で判定する
+{% for container in observability_alert_containers %}
+      - uid: container-down-{{ container }}
+        title: "コンテナダウン: {{ container }}"
+        condition: B
         data:
           - refId: A
             relativeTimeRange:
@@ -20,12 +22,10 @@ groups:
             datasourceUid: prometheus
             model:
               expr: >-
-                time() - max by (name) (
-                  container_last_seen{name=~"{{ observability_alert_containers | join('|') }}"}
-                )
+                absent_over_time(container_last_seen{name="{{ container }}"}[10m])
               instant: true
               refId: A
-          - refId: C
+          - refId: B
             relativeTimeRange:
               from: 600
               to: 0
@@ -37,16 +37,16 @@ groups:
                 - evaluator:
                     type: gt
                     params:
-                      - {{ observability_alert_container_down_threshold }}
-              refId: C
-        for: 5m
-        noDataState: NoData
+                      - 0
+              refId: B
+        for: 0s
+        noDataState: OK
         execErrState: Alerting
         annotations:
-          summary: >-
-            {% raw %}コンテナ {{ $labels.name }} が {{ $value }} 秒間応答なし{% endraw %}
+          summary: "コンテナ {{ container }} が10分以上停止しています"
         labels:
           severity: critical
+{% endfor %}
 
       # --- バックアップ失敗検知（エラーログ検出） ---
       # syslog 内の "Backup failed" ログを検出して即座に通知
@@ -139,5 +139,58 @@ groups:
         execErrState: Alerting
         annotations:
           summary: "過去{{ observability_alert_backup_missing_hours }}時間以内にバックアップ成功ログがありません。"
+        labels:
+          severity: warning
+
+      # --- ディスク使用率検知 ---
+      # Node Exporter のファイルシステムメトリクスで使用率90%超過を検知
+      # tmpfs 等の仮想ファイルシステムは除外
+      - uid: disk-usage-high
+        title: ディスク使用率が90%超過
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: >-
+                100 - (
+                  node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} /
+                  node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}
+                ) * 100 > 90
+              instant: true
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params:
+                      - 0
+              refId: C
+        for: 5m
+        noDataState: NoData
+        execErrState: Alerting
+        annotations:
+          summary: >-
+            {% raw %}ディスク {{ $labels.mountpoint }} の使用率が90%を超えています（{{ $value }}%）{% endraw %}
         labels:
           severity: warning

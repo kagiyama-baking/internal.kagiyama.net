@@ -57,8 +57,5 @@ observability_alert_containers:
     - portainer
     - coredns
 
-# コンテナダウン検知の閾値（秒）
-observability_alert_container_down_threshold: 300
-
 # バックアップ未完了検知の時間窓（時間）
 observability_alert_backup_missing_hours: 26
