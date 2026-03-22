@@ -5,7 +5,7 @@ server {
 
     # Docker 内部 DNS（リクエスト時にホスト名を解決する）
     resolver 127.0.0.11 valid=10s;
-    set $backend django-api:8000;
+    set $backend django:8000;
 
     # セキュリティヘッダー
     add_header X-Content-Type-Options "nosniff" always;
