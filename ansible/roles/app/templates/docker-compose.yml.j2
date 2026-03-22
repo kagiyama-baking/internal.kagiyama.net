@@ -49,9 +49,9 @@ services:
     depends_on:
       - django-api
     tmpfs:
-      - /var/cache/nginx
-      - /tmp
-      - /run
+      - /var/cache/nginx:uid=101,gid=101
+      - /tmp:uid=101,gid=101
+      - /run:uid=101,gid=101
     security_opt:
       - no-new-privileges:true
     cap_drop:
