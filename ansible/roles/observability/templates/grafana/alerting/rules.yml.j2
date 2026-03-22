@@ -157,9 +157,9 @@ groups:
             model:
               expr: >-
                 100 - (
-                  node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} /
-                  node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}
-                ) * 100 > 90
+                  node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs|vfat"} /
+                  node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs|vfat"}
+                ) * 100
               instant: true
               refId: A
           - refId: B
@@ -170,7 +170,7 @@ groups:
             model:
               type: reduce
               expression: A
-              reducer: last
+              reducer: max
               refId: B
           - refId: C
             relativeTimeRange:
@@ -184,7 +184,7 @@ groups:
                 - evaluator:
                     type: gt
                     params:
-                      - 0
+                      - 90
               refId: C
         for: 5m
         noDataState: NoData
