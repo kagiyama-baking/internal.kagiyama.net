@@ -1,0 +1,143 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: infrastructure
+    folder: Alerting
+    interval: 1m
+    rules:
+      # --- コンテナダウン検知 ---
+      # cAdvisor の container_last_seen から経過秒数を算出
+      # PromQL 閾値 300s + Grafana pending 5m = 実質10分ダウンで発火
+      - uid: container-down
+        title: コンテナダウン
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: >-
+                time() - max by (name) (
+                  container_last_seen{name=~"{{ observability_alert_containers | join('|') }}"}
+                )
+              instant: true
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params:
+                      - {{ observability_alert_container_down_threshold }}
+              refId: C
+        for: 5m
+        noDataState: NoData
+        execErrState: Alerting
+        annotations:
+          summary: >-
+            {% raw %}コンテナ {{ $labels.name }} が {{ $value }} 秒間応答なし{% endraw %}
+        labels:
+          severity: critical
+
+      # --- バックアップ失敗検知（エラーログ検出） ---
+      # syslog 内の "Backup failed" ログを検出して即座に通知
+      - uid: backup-failure
+        title: バックアップ失敗
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: >-
+                count_over_time({job="syslog"} |= "autorestic-backup" |= "Backup failed" [1h])
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: 3600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params:
+                      - 0
+              refId: C
+        for: 0s
+        noDataState: OK
+        execErrState: Alerting
+        annotations:
+          summary: "autorestic バックアップが失敗しました。syslog を確認してください。"
+        labels:
+          severity: critical
+
+      # --- バックアップ未実行検知（成功ログの不在） ---
+      # 26時間以内に成功ログがなければ発火（3:00 UTC 実行に2時間のバッファ）
+      - uid: backup-missing
+        title: バックアップ未実行
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: {{ observability_alert_backup_missing_hours * 3600 }}
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: >-
+                count_over_time({job="syslog"} |= "autorestic-backup" |= "Backup completed successfully" [{{ observability_alert_backup_missing_hours }}h])
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: {{ observability_alert_backup_missing_hours * 3600 }}
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            relativeTimeRange:
+              from: {{ observability_alert_backup_missing_hours * 3600 }}
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: lt
+                    params:
+                      - 1
+              refId: C
+        for: 0s
+        noDataState: OK
+        execErrState: Alerting
+        annotations:
+          summary: "過去{{ observability_alert_backup_missing_hours }}時間以内にバックアップ成功ログがありません。"
+        labels:
+          severity: warning

@@ -44,3 +44,21 @@ observability_cadvisor_cpus: 0.5
 # ===== リソース制限: Promtail =====
 observability_promtail_mem_limit: 128m
 observability_promtail_cpus: 0.5
+
+# ===== アラート設定 =====
+# 監視対象コンテナ一覧（サービスコンテナのみ、インフラコンテナは除外）
+observability_alert_containers:
+    - immich-server
+    - immich-machine-learning
+    - immich-redis
+    - immich-database
+    - django-api
+    - traefik
+    - portainer
+    - coredns
+
+# コンテナダウン検知の閾値（秒）
+observability_alert_container_down_threshold: 300
+
+# バックアップ未完了検知の時間窓（時間）
+observability_alert_backup_missing_hours: 26

@@ -12,6 +12,7 @@ services:
       - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
       - ./grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
       - ./dashboards:/var/lib/grafana/dashboards:ro
+      - ./grafana/alerting:/etc/grafana/provisioning/alerting:ro
     networks:
       - {{ traefik_network_name }}
       - observability-internal
