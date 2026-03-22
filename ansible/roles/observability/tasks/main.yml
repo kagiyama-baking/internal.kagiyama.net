@@ -69,6 +69,33 @@
       mode: '0644'
   notify: Observability を再起動
 
+- name: Grafana アラート設定ディレクトリを作成
+  ansible.builtin.file:
+      path: '{{ observability_install_dir }}/grafana/alerting'
+      state: directory
+      mode: '0755'
+
+- name: Grafana コンタクトポイント設定を配置
+  ansible.builtin.template:
+      src: grafana/alerting/contactpoints.yml.j2
+      dest: '{{ observability_install_dir }}/grafana/alerting/contactpoints.yml'
+      mode: '0600'
+  notify: Observability を再起動
+
+- name: Grafana 通知ポリシー設定を配置
+  ansible.builtin.template:
+      src: grafana/alerting/policies.yml.j2
+      dest: '{{ observability_install_dir }}/grafana/alerting/policies.yml'
+      mode: '0644'
+  notify: Observability を再起動
+
+- name: Grafana アラートルール設定を配置
+  ansible.builtin.template:
+      src: grafana/alerting/rules.yml.j2
+      dest: '{{ observability_install_dir }}/grafana/alerting/rules.yml'
+      mode: '0644'
+  notify: Observability を再起動
+
 - name: Grafana ダッシュボードプロバイダ設定を配置
   ansible.builtin.template:
       src: grafana/dashboards.yml.j2

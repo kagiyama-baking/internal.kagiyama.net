@@ -1,0 +1,17 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: slack
+    receivers:
+      - uid: slack-webhook
+        type: slack
+        settings:
+          url: "{{ observability_vault_slack_webhook_url }}"
+          title: >-
+            {% raw %}[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}{% endraw %}
+          text: >-
+            {% raw %}{{ range .Alerts }}
+            *{{ .Labels.alertname }}*
+            {{ .Annotations.summary }}
+            {{ end }}{% endraw %}
