@@ -48,14 +48,14 @@ services:
       - "traefik.docker.network={{ traefik_network_name }}"
     depends_on:
       - django-api
+    tmpfs:
+      - /var/cache/nginx
+      - /tmp
+      - /run
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    cap_add:
-      - CHOWN
-      - SETGID
-      - SETUID
     mem_limit: {{ app_frontend_mem_limit }}
     cpus: {{ app_frontend_cpus }}
     logging:
@@ -69,4 +69,3 @@ networks:
     external: true
   app-internal:
     driver: bridge
-    internal: true
