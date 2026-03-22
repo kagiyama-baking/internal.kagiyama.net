@@ -10,17 +10,7 @@ services:
       - "{{ app_install_dir }}/django-api/staticfiles:/django_api/staticfiles"
       - "{{ app_install_dir }}/django-api/db.sqlite3:/django_api/db.sqlite3"
     networks:
-      - {{ traefik_network_name }}
       - app-internal
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.app-django.rule=Host(`{{ app_traefik_host }}`) && (PathPrefix(`/admin`) || PathPrefix(`/swagger`) || PathPrefix(`/schema`) || PathPrefix(`/redoc`) || PathPrefix(`/static`))"
-      - "traefik.http.routers.app-django.entrypoints=websecure"
-      - "traefik.http.routers.app-django.tls=true"
-      - "traefik.http.routers.app-django.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.app-django.priority=200"
-      - "traefik.http.services.app-django.loadbalancer.server.port=8000"
-      - "traefik.docker.network={{ traefik_network_name }}"
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
@@ -44,17 +34,17 @@ services:
     restart: unless-stopped
     volumes:
       - "{{ app_install_dir }}/frontend/banner.jpg:/usr/share/nginx/html/banner.jpg:ro"
+      - "{{ app_install_dir }}/frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro"
     networks:
       - {{ traefik_network_name }}
       - app-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.app-frontend.rule=Host(`{{ app_traefik_host }}`)"
-      - "traefik.http.routers.app-frontend.entrypoints=websecure"
-      - "traefik.http.routers.app-frontend.tls=true"
-      - "traefik.http.routers.app-frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.app-frontend.priority=100"
-      - "traefik.http.services.app-frontend.loadbalancer.server.port=80"
+      - "traefik.http.routers.app.rule=Host(`{{ app_traefik_host }}`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls=true"
+      - "traefik.http.routers.app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.app.loadbalancer.server.port=80"
       - "traefik.docker.network={{ traefik_network_name }}"
     depends_on:
       - django-api
