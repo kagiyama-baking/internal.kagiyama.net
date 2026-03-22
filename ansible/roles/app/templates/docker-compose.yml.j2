@@ -4,8 +4,6 @@ services:
     image: "{{ app_django_image }}"
     container_name: django
     restart: unless-stopped
-    ports:
-      - "{{ app_django_bind_address }}:{{ app_django_port }}:8000"
     env_file:
       - .env
     volumes:
@@ -13,13 +11,15 @@ services:
       - "{{ app_install_dir }}/django-api/db.sqlite3:/django_api/db.sqlite3"
     networks:
       - {{ traefik_network_name }}
+      - app-internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.app.rule=Host(`{{ app_traefik_host }}`)"
-      - "traefik.http.routers.app.entrypoints=websecure"
-      - "traefik.http.routers.app.tls=true"
-      - "traefik.http.routers.app.tls.certresolver=letsencrypt"
-      - "traefik.http.services.app.loadbalancer.server.port=8000"
+      - "traefik.http.routers.app-django.rule=Host(`{{ app_traefik_host }}`) && (PathPrefix(`/admin`) || PathPrefix(`/swagger`) || PathPrefix(`/static`))"
+      - "traefik.http.routers.app-django.entrypoints=websecure"
+      - "traefik.http.routers.app-django.tls=true"
+      - "traefik.http.routers.app-django.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.app-django.priority=200"
+      - "traefik.http.services.app-django.loadbalancer.server.port=8000"
       - "traefik.docker.network={{ traefik_network_name }}"
     command: >
       sh -c "python manage.py migrate &&
@@ -37,6 +37,42 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  # フロントエンド（React SPA + nginx）
+  frontend:
+    image: "{{ app_frontend_image }}"
+    container_name: frontend
+    restart: unless-stopped
+    volumes:
+      - "{{ app_install_dir }}/frontend/banner.jpg:/usr/share/nginx/html/banner.jpg:ro"
+    networks:
+      - {{ traefik_network_name }}
+      - app-internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app-frontend.rule=Host(`{{ app_traefik_host }}`)"
+      - "traefik.http.routers.app-frontend.entrypoints=websecure"
+      - "traefik.http.routers.app-frontend.tls=true"
+      - "traefik.http.routers.app-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.app-frontend.priority=100"
+      - "traefik.http.services.app-frontend.loadbalancer.server.port=80"
+      - "traefik.docker.network={{ traefik_network_name }}"
+    depends_on:
+      - django-api
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: {{ app_frontend_mem_limit }}
+    cpus: {{ app_frontend_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
 networks:
   {{ traefik_network_name }}:
     external: true
+  app-internal:
+    driver: bridge
+    internal: true

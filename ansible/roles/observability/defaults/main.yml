@@ -53,6 +53,7 @@ observability_alert_containers:
     - immich-redis
     - immich-database
     - django
+    - frontend
     - traefik
     - portainer
     - coredns
