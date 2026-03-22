@@ -15,6 +15,14 @@
   loop:
       - "{{ app_install_dir }}/django-api"
       - "{{ app_install_dir }}/django-api/staticfiles"
+      - "{{ app_install_dir }}/frontend"
+
+- name: バナー画像を配置
+  ansible.builtin.copy:
+      src: banner.jpg
+      dest: "{{ app_install_dir }}/frontend/banner.jpg"
+      mode: '0644'
+  notify: App を再起動
 
 - name: SQLite データベースファイルが存在することを確認
   ansible.builtin.file:
