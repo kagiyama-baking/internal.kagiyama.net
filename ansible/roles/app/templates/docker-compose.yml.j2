@@ -3,6 +3,7 @@ services:
   django-api:
     image: "{{ app_django_image }}"
     container_name: django-api
+    hostname: django-api
     restart: unless-stopped
     env_file:
       - .env
@@ -31,6 +32,7 @@ services:
   frontend:
     image: "{{ app_frontend_image }}"
     container_name: frontend
+    hostname: frontend
     restart: unless-stopped
     volumes:
       - "{{ app_install_dir }}/frontend/banner.jpg:/usr/share/nginx/html/banner.jpg:ro"
