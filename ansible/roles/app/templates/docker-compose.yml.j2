@@ -2,7 +2,7 @@ services:
   # Django REST API サーバー
   django-api:
     image: "{{ app_django_image }}"
-    container_name: django
+    container_name: django-api
     restart: unless-stopped
     env_file:
       - .env
