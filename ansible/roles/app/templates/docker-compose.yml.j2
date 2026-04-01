@@ -9,9 +9,11 @@ services:
       - .env
     volumes:
       - "{{ app_install_dir }}/django-api/staticfiles:/django_api/staticfiles"
-      - "{{ app_install_dir }}/django-api/db.sqlite3:/django_api/db.sqlite3"
     networks:
       - app-internal
+    depends_on:
+      app-database:
+        condition: service_healthy
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
@@ -22,6 +24,45 @@ services:
       - ALL
     mem_limit: {{ app_django_mem_limit }}
     cpus: {{ app_django_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # PostgreSQL データベース
+  app-database:
+    image: "{{ app_db_image }}"
+    container_name: app-database
+    hostname: app-database
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: "{{ app_vault_db_password }}"
+      POSTGRES_USER: "{{ app_db_username }}"
+      POSTGRES_DB: "{{ app_db_database_name }}"
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - "{{ app_db_data_location }}:/var/lib/postgresql/data"
+    networks:
+      - app-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d {{ app_db_database_name }} -U {{ app_db_username }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    mem_limit: {{ app_db_mem_limit }}
+    cpus: {{ app_db_cpus }}
     logging:
       driver: "json-file"
       options:

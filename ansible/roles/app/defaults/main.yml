@@ -19,6 +19,16 @@ app_sbv2_service_url: http://100.72.34.43:5000
 app_django_mem_limit: 512m
 app_django_cpus: 1.0
 
+# PostgreSQL データベース設定
+app_db_image: postgres:17-alpine
+app_db_username: kawashiro
+app_db_database_name: kawashiro
+app_db_data_location: /opt/app/postgres
+
+# リソース制限: database
+app_db_mem_limit: 256m
+app_db_cpus: 0.5
+
 # リソース制限: frontend
 app_frontend_mem_limit: 128m
 app_frontend_cpus: 0.5
