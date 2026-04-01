@@ -23,5 +23,7 @@ backup_immich_db_user: postgres
 backup_immich_db_name: immich
 backup_immich_library_dir: /opt/immich/library
 
-# app 関連
-backup_app_db_path: /opt/app/django-api/db.sqlite3
+# app 関連（PostgreSQL）
+backup_app_db_container: app-database
+backup_app_db_user: kawashiro
+backup_app_db_name: kawashiro

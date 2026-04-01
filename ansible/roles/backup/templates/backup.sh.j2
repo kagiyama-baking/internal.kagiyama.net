@@ -17,7 +17,7 @@ log_error() {
 cleanup() {
     log_info "Cleaning up dump files"
     rm -f "{{ backup_dump_dir }}/immich/immich.sql"
-    rm -f "{{ backup_dump_dir }}/app/db.sqlite3"
+    rm -f "{{ backup_dump_dir }}/app/kawashiro.sql"
 }
 
 trap 'log_error "Backup failed at line $LINENO"; cleanup' ERR
@@ -30,11 +30,12 @@ docker exec {{ backup_immich_db_container }} \
     > "{{ backup_dump_dir }}/immich/immich.sql"
 log_info "PostgreSQL dump completed"
 
-# --- Pre-backup: SQLite バックアップ ---
-log_info "Starting SQLite backup"
-sqlite3 "{{ backup_app_db_path }}" \
-    ".backup '{{ backup_dump_dir }}/app/db.sqlite3'"
-log_info "SQLite backup completed"
+# --- Pre-backup: app PostgreSQL ダンプ ---
+log_info "Starting app PostgreSQL dump"
+docker exec {{ backup_app_db_container }} \
+    pg_dump -U {{ backup_app_db_user }} {{ backup_app_db_name }} \
+    > "{{ backup_dump_dir }}/app/kawashiro.sql"
+log_info "App PostgreSQL dump completed"
 
 # --- autorestic バックアップ実行 ---
 log_info "Starting autorestic backup"

@@ -31,13 +31,11 @@
       mode: '0644'
   notify: App を再起動
 
-- name: SQLite データベースファイルが存在することを確認
+- name: PostgreSQL データディレクトリを作成
   ansible.builtin.file:
-      path: "{{ app_install_dir }}/django-api/db.sqlite3"
-      state: touch
-      mode: '0644'
-      modification_time: preserve
-      access_time: preserve
+      path: "{{ app_db_data_location }}"
+      state: directory
+      mode: '0700'
 
 - name: 環境変数ファイルを配置
   ansible.builtin.template:
