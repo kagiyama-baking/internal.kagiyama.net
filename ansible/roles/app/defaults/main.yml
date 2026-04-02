@@ -20,7 +20,7 @@ app_django_mem_limit: 512m
 app_django_cpus: 1.0
 
 # PostgreSQL データベース設定
-app_db_image: postgres:17-alpine
+app_db_image: pgvector/pgvector:pg17
 app_db_username: kawashiro
 app_db_database_name: kawashiro
 app_db_data_location: /opt/app/postgres
@@ -28,6 +28,22 @@ app_db_data_location: /opt/app/postgres
 # リソース制限: database
 app_db_mem_limit: 256m
 app_db_cpus: 0.5
+
+# Redis 設定
+app_redis_image: redis:7-alpine
+
+# Celery ワーカー設定
+app_celery_worker_concurrency: 2
+app_celery_worker_mem_limit: 512m
+app_celery_worker_cpus: 1.0
+
+# リソース制限: celery-beat
+app_celery_beat_mem_limit: 128m
+app_celery_beat_cpus: 0.25
+
+# リソース制限: redis
+app_redis_mem_limit: 128m
+app_redis_cpus: 0.25
 
 # リソース制限: frontend
 app_frontend_mem_limit: 128m
