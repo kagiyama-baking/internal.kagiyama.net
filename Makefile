@@ -10,6 +10,7 @@
 #   make deploy-immich                  # Immich をデプロイ（Vault必要）
 #   make deploy-observability           # Observability をデプロイ（Vault必要）
 #   make deploy-app                     # アプリケーション をデプロイ（Vault必要）
+#   make deploy-langfuse                # LangFuse をデプロイ（Vault必要）
 #   make deploy-backup                  # バックアップ設定 をデプロイ（Vault必要）
 #   make deploy-backup-status           # バックアップ状態を確認
 #   make deploy-backup-run              # バックアップを手動実行
@@ -25,6 +26,7 @@
 #   make immich                         # Immich をデプロイ（Vault必要）
 #   make observability                  # Observability をデプロイ（Vault必要）
 #   make app                            # アプリケーション をデプロイ（Vault必要）
+#   make langfuse                       # LangFuse をデプロイ（Vault必要）
 #   make backup                         # バックアップ設定 をデプロイ（Vault必要）
 #   make backup-status                  # バックアップ状態を確認
 #   make backup-run                     # バックアップを手動実行
@@ -35,7 +37,7 @@ SSH_HOST  ?= internal.kagiyama.net
 REMOTE_DIR ?= ~/internal.kagiyama.net
 ANSIBLE_DIR = ansible
 
-.PHONY: test setup coredns portainer traefik immich observability app backup backup-status backup-run check deploy-test deploy-setup deploy-coredns deploy-portainer deploy-traefik deploy-immich deploy-observability deploy-app deploy-backup deploy-backup-status deploy-backup-run deploy-check
+.PHONY: test setup coredns portainer traefik immich observability app langfuse backup backup-status backup-run check deploy-test deploy-setup deploy-coredns deploy-portainer deploy-traefik deploy-immich deploy-observability deploy-app deploy-langfuse deploy-backup deploy-backup-status deploy-backup-run deploy-check
 
 # ============================================================
 # サーバ上で直接実行（Ansible）
@@ -72,6 +74,10 @@ observability:
 # アプリケーション をデプロイする（Vaultパスワードが必要）
 app:
 	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags app --ask-vault-pass
+
+# LangFuse をデプロイする（Vaultパスワードが必要）
+langfuse:
+	cd $(ANSIBLE_DIR) && ansible-playbook site.yml --tags langfuse --ask-vault-pass
 
 # バックアップ設定 をデプロイする（Vaultパスワードが必要）
 backup:
@@ -134,6 +140,10 @@ deploy-observability:
 # リモートで pull + アプリケーション デプロイ（Vaultパスワードが必要）
 deploy-app:
 	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make app'"
+
+# リモートで pull + LangFuse デプロイ（Vaultパスワードが必要）
+deploy-langfuse:
+	ssh -At $(SSH_HOST) "bash -l -c 'cd $(REMOTE_DIR) && git pull && make langfuse'"
 
 # リモートで pull + バックアップ設定 デプロイ（Vaultパスワードが必要）
 deploy-backup:

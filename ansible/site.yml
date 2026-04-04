@@ -47,6 +47,12 @@
   roles:
       - app
 
+- name: LangFuse デプロイ
+  hosts: local
+  tags: langfuse
+  roles:
+      - langfuse
+
 - name: バックアップ設定
   hosts: local
   tags: backup

@@ -57,6 +57,8 @@ observability_alert_containers:
     - traefik
     - portainer
     - coredns
+    - langfuse-web
+    - langfuse-worker
 
 # バックアップ未完了検知の時間窓（時間）
 observability_alert_backup_missing_hours: 26

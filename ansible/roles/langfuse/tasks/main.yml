@@ -1,0 +1,38 @@
+---
+# ===== LangFuse v3 デプロイ =====
+# 前提: setup ロールで /opt/langfuse がログインユーザー所有で作成済み
+#       ログインユーザーは docker グループに所属済み
+
+- name: Vault 暗号化変数を読み込み
+  ansible.builtin.include_vars:
+      file: vault.yml
+
+- name: ボリュームディレクトリを作成
+  ansible.builtin.file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0755'
+  loop:
+      - "{{ langfuse_db_data_location }}"
+      - "{{ langfuse_clickhouse_data_location }}"
+      - "{{ langfuse_minio_data_location }}"
+
+- name: 環境変数ファイルを配置
+  ansible.builtin.template:
+      src: env.j2
+      dest: '{{ langfuse_install_dir }}/.env'
+      mode: '0600'
+  notify: LangFuse を再起動
+
+- name: Docker-compose.yml を配置
+  ansible.builtin.template:
+      src: docker-compose.yml.j2
+      dest: '{{ langfuse_install_dir }}/docker-compose.yml'
+      mode: '0600'
+  notify: LangFuse を再起動
+
+- name: LangFuse コンテナを起動
+  community.docker.docker_compose_v2:
+      project_src: '{{ langfuse_install_dir }}'
+      state: present
+      pull: always
