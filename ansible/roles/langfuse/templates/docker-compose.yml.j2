@@ -194,19 +194,18 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # MinIO（S3 互換オブジェクトストレージ — Chainguard）
+  # MinIO（S3 互換オブジェクトストレージ — Bitnami）
   langfuse-minio:
     image: "{{ langfuse_minio_image }}"
     container_name: langfuse-minio
     hostname: langfuse-minio
     restart: unless-stopped
-    user: "{{ langfuse_minio_uid }}:{{ langfuse_minio_gid }}"
-    command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: "{{ langfuse_vault_minio_root_user }}"
       MINIO_ROOT_PASSWORD: "{{ langfuse_vault_minio_root_password }}"
+      MINIO_DEFAULT_BUCKETS: "{{ langfuse_s3_event_bucket }},{{ langfuse_s3_media_bucket }},{{ langfuse_s3_export_bucket }}"
     volumes:
-      - "{{ langfuse_minio_data_location }}:/data"
+      - "{{ langfuse_minio_data_location }}:/bitnami/minio/data"
     networks:
       - langfuse-internal
     healthcheck:
@@ -219,31 +218,14 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
     mem_limit: {{ langfuse_minio_mem_limit }}
     cpus: {{ langfuse_minio_cpus }}
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
-  # MinIO バケット初期化（初回のみ実行）
-  langfuse-minio-init:
-    image: "{{ langfuse_minio_client_image }}"
-    container_name: langfuse-minio-init
-    restart: "no"
-    depends_on:
-      langfuse-minio:
-        condition: service_healthy
-    entrypoint: >
-      sh -c "
-        mc alias set local http://langfuse-minio:9000 {{ langfuse_vault_s3_access_key_id }} {{ langfuse_vault_s3_secret_access_key }} &&
-        mc mb --ignore-existing local/{{ langfuse_s3_event_bucket }} &&
-        mc mb --ignore-existing local/{{ langfuse_s3_media_bucket }} &&
-        mc mb --ignore-existing local/{{ langfuse_s3_export_bucket }}
-      "
-    networks:
-      - langfuse-internal
     logging:
       driver: "json-file"
       options:
