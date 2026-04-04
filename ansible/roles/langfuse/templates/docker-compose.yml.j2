@@ -1,0 +1,259 @@
+services:
+  # LangFuse Web UI + API
+  langfuse-web:
+    image: "{{ langfuse_web_image }}"
+    container_name: langfuse-web
+    hostname: langfuse-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - {{ traefik_network_name }}
+      - langfuse-internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.langfuse.rule=Host(`{{ langfuse_traefik_host }}`)"
+      - "traefik.http.routers.langfuse.entrypoints=websecure"
+      - "traefik.http.routers.langfuse.tls=true"
+      - "traefik.http.routers.langfuse.tls.certresolver=letsencrypt"
+      - "traefik.http.services.langfuse.loadbalancer.server.port={{ langfuse_web_port }}"
+      - "traefik.docker.network={{ traefik_network_name }}"
+    depends_on:
+      langfuse-database:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:{{ langfuse_web_port }}/api/public/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: {{ langfuse_web_mem_limit }}
+    cpus: {{ langfuse_web_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # LangFuse Worker（非同期イベント処理）
+  langfuse-worker:
+    image: "{{ langfuse_worker_image }}"
+    container_name: langfuse-worker
+    hostname: langfuse-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    networks:
+      - langfuse-internal
+    depends_on:
+      langfuse-database:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:{{ langfuse_worker_port }}/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: {{ langfuse_worker_mem_limit }}
+    cpus: {{ langfuse_worker_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # PostgreSQL データベース（UTC タイムゾーン必須）
+  langfuse-database:
+    image: "{{ langfuse_db_image }}"
+    container_name: langfuse-database
+    hostname: langfuse-database
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: "{{ langfuse_vault_db_password }}"
+      POSTGRES_USER: "{{ langfuse_db_username }}"
+      POSTGRES_DB: "{{ langfuse_db_database_name }}"
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+      TZ: UTC
+      PGTZ: UTC
+    volumes:
+      - "{{ langfuse_db_data_location }}:/var/lib/postgresql/data"
+    networks:
+      - langfuse-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d {{ langfuse_db_database_name }} -U {{ langfuse_db_username }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    mem_limit: {{ langfuse_db_mem_limit }}
+    cpus: {{ langfuse_db_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ClickHouse（OLAP 分析エンジン）
+  langfuse-clickhouse:
+    image: "{{ langfuse_clickhouse_image }}"
+    container_name: langfuse-clickhouse
+    hostname: langfuse-clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_USER: "{{ langfuse_clickhouse_user }}"
+      CLICKHOUSE_PASSWORD: "{{ langfuse_vault_clickhouse_password }}"
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+      TZ: UTC
+    volumes:
+      - "{{ langfuse_clickhouse_data_location }}:/var/lib/clickhouse"
+    networks:
+      - langfuse-internal
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8123/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+      - IPC_LOCK
+      - SYS_NICE
+    mem_limit: {{ langfuse_clickhouse_mem_limit }}
+    cpus: {{ langfuse_clickhouse_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis（キューおよびキャッシュ）
+  langfuse-redis:
+    image: "{{ langfuse_redis_image }}"
+    container_name: langfuse-redis
+    hostname: langfuse-redis
+    restart: unless-stopped
+    command: redis-server --requirepass "{{ langfuse_vault_redis_password }}"
+    networks:
+      - langfuse-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "{{ langfuse_vault_redis_password }}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - SETGID
+      - SETUID
+    mem_limit: {{ langfuse_redis_mem_limit }}
+    cpus: {{ langfuse_redis_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # MinIO（S3 互換オブジェクトストレージ — Chainguard）
+  langfuse-minio:
+    image: "{{ langfuse_minio_image }}"
+    container_name: langfuse-minio
+    hostname: langfuse-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: "{{ langfuse_vault_minio_root_user }}"
+      MINIO_ROOT_PASSWORD: "{{ langfuse_vault_minio_root_password }}"
+    volumes:
+      - "{{ langfuse_minio_data_location }}:/data"
+    networks:
+      - langfuse-internal
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9000/minio/health/live || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: {{ langfuse_minio_mem_limit }}
+    cpus: {{ langfuse_minio_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # MinIO バケット初期化（初回のみ実行）
+  langfuse-minio-init:
+    image: "{{ langfuse_minio_image }}"
+    container_name: langfuse-minio-init
+    restart: "no"
+    depends_on:
+      langfuse-minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: "{{ langfuse_vault_minio_root_user }}"
+      MINIO_ROOT_PASSWORD: "{{ langfuse_vault_minio_root_password }}"
+    entrypoint: >
+      sh -c "
+        mc alias set local http://langfuse-minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+        mc mb --ignore-existing local/{{ langfuse_s3_event_bucket }} &&
+        mc mb --ignore-existing local/{{ langfuse_s3_media_bucket }} &&
+        mc mb --ignore-existing local/{{ langfuse_s3_export_bucket }}
+      "
+    networks:
+      - langfuse-internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  {{ traefik_network_name }}:
+    external: true
+  langfuse-internal:
+    driver: bridge
