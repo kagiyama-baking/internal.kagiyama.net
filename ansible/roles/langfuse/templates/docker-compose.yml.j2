@@ -200,6 +200,7 @@ services:
     container_name: langfuse-minio
     hostname: langfuse-minio
     restart: unless-stopped
+    user: "{{ langfuse_minio_uid }}:{{ langfuse_minio_gid }}"
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: "{{ langfuse_vault_minio_root_user }}"
