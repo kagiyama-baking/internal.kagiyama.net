@@ -15,7 +15,7 @@ langfuse_worker_image: langfuse/langfuse-worker:3
 langfuse_db_image: postgres:17
 langfuse_clickhouse_image: clickhouse/clickhouse-server:latest
 langfuse_redis_image: redis:7-alpine
-langfuse_minio_image: bitnami/minio:latest
+langfuse_minio_image: quay.io/minio/minio:latest
 
 # アプリケーション設定
 langfuse_nextauth_url: 'https://{{ langfuse_traefik_host }}'
