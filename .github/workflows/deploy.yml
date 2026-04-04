@@ -7,7 +7,7 @@ on:
             roles:
                 description: 'デプロイ対象ロール（カンマ区切り）'
                 required: true
-                default: 'coredns,traefik,portainer,immich,observability,app,backup'
+                default: 'coredns,traefik,portainer,immich,observability,app,langfuse,backup'
                 type: string
     push:
         branches: [main]
@@ -35,7 +35,7 @@ jobs:
               env:
                   INPUT_ROLES: ${{ inputs.roles }}
               run: |
-                  ALLOWED_ROLES="coredns traefik portainer immich observability app backup"
+                  ALLOWED_ROLES="coredns traefik portainer immich observability app langfuse backup"
 
                   # 手動実行時は入力値を許可リストで検証
                   if [ -n "$INPUT_ROLES" ]; then
@@ -61,18 +61,18 @@ jobs:
                     CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD)
                   elif ! CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null); then
                     echo "::warning::前コミットとの差分を取得できません。全ロールをデプロイします。"
-                    echo "roles=coredns,traefik,portainer,immich,observability,app,backup" >> "$GITHUB_OUTPUT"
+                    echo "roles=coredns,traefik,portainer,immich,observability,app,langfuse,backup" >> "$GITHUB_OUTPUT"
                     exit 0
                   fi
 
                   # 全ロール対象のパスが変更された場合
                   if echo "$CHANGED" | grep -qE '^ansible/(group_vars/|site\.yml)'; then
-                    echo "roles=coredns,traefik,portainer,immich,observability,app,backup" >> "$GITHUB_OUTPUT"
+                    echo "roles=coredns,traefik,portainer,immich,observability,app,langfuse,backup" >> "$GITHUB_OUTPUT"
                     exit 0
                   fi
 
                   ROLES=""
-                  for role in coredns traefik portainer immich observability app backup; do
+                  for role in coredns traefik portainer immich observability app langfuse backup; do
                     if echo "$CHANGED" | grep -q "ansible/roles/$role/"; then
                       ROLES="${ROLES:+$ROLES,}$role"
                     fi
