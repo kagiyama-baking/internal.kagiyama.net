@@ -24,12 +24,6 @@
       mode: '0644'
   notify: App を再起動
 
-- name: PostgreSQL データディレクトリを作成
-  ansible.builtin.file:
-      path: "{{ app_db_data_location }}"
-      state: directory
-      mode: '0700'
-
 - name: 環境変数ファイルを配置
   ansible.builtin.template:
       src: env.j2
