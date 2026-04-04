@@ -7,16 +7,6 @@
   ansible.builtin.include_vars:
       file: vault.yml
 
-- name: データディレクトリを作成
-  ansible.builtin.file:
-      path: "{{ item }}"
-      state: directory
-      mode: '0755'
-  loop:
-      - "{{ langfuse_db_data_location }}"
-      - "{{ langfuse_clickhouse_data_location }}"
-      - "{{ langfuse_minio_data_location }}"
-
 - name: 環境変数ファイルを配置
   ansible.builtin.template:
       src: env.j2
