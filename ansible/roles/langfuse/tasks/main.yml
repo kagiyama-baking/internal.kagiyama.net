@@ -15,7 +15,15 @@
   loop:
       - "{{ langfuse_db_data_location }}"
       - "{{ langfuse_clickhouse_data_location }}"
-      - "{{ langfuse_minio_data_location }}"
+
+- name: MinIO データディレクトリを作成（UID 65532 で実行されるため所有権を設定）
+  ansible.builtin.file:
+      path: "{{ langfuse_minio_data_location }}"
+      state: directory
+      owner: '65532'
+      group: '65532'
+      mode: '0755'
+  become: true
 
 - name: 環境変数ファイルを配置
   ansible.builtin.template:
