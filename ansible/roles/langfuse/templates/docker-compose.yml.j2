@@ -28,7 +28,7 @@ services:
       langfuse-minio:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:{{ langfuse_web_port }}/api/public/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:{{ langfuse_web_port }}/api/public/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -65,7 +65,7 @@ services:
       langfuse-minio:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:{{ langfuse_worker_port }}/api/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:{{ langfuse_worker_port }}/api/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -139,7 +139,7 @@ services:
     networks:
       - langfuse-internal
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8123/ping || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8123/ping || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
