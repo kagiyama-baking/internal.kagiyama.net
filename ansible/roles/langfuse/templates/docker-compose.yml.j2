@@ -242,7 +242,7 @@ services:
         condition: service_healthy
     entrypoint: >
       sh -c "
-        mc alias set local http://langfuse-minio:9000 {{ langfuse_vault_s3_access_key_id }} {{ langfuse_vault_s3_secret_access_key }} &&
+        mc alias set local http://langfuse-minio:9000 {{ langfuse_vault_minio_root_user }} {{ langfuse_vault_minio_root_password }} &&
         mc mb --ignore-existing local/{{ langfuse_s3_event_bucket }} &&
         mc mb --ignore-existing local/{{ langfuse_s3_media_bucket }} &&
         mc mb --ignore-existing local/{{ langfuse_s3_export_bucket }}
