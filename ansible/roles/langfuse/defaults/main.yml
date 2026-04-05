@@ -51,8 +51,8 @@ langfuse_db_mem_limit: 1g
 langfuse_db_cpus: 1.0
 
 # リソース制限: ClickHouse
-langfuse_clickhouse_mem_limit: 4g
-langfuse_clickhouse_cpus: 2.0
+langfuse_clickhouse_mem_limit: 1g
+langfuse_clickhouse_cpus: 0.5
 
 # リソース制限: Redis
 langfuse_redis_mem_limit: 256m
