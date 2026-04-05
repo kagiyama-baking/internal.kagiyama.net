@@ -31,7 +31,7 @@ langfuse_clickhouse_user: langfuse
 langfuse_clickhouse_database: default
 
 # S3 / MinIO 設定
-langfuse_s3_region: auto
+langfuse_s3_region: us-east-1
 langfuse_s3_force_path_style: 'true'
 langfuse_s3_event_bucket: langfuse
 langfuse_s3_media_bucket: langfuse-media
