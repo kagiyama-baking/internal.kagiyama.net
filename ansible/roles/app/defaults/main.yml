@@ -48,3 +48,7 @@ app_redis_cpus: 0.25
 # リソース制限: frontend
 app_frontend_mem_limit: 128m
 app_frontend_cpus: 0.5
+
+# Langfuse LLMOps 設定
+app_langfuse_base_url: https://langfuse.internal.kagiyama.net
+app_langfuse_tracing_environment: prd
