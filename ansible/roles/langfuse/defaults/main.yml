@@ -7,15 +7,12 @@ langfuse_install_dir: /opt/langfuse
 # データ保存先（永続ボリューム）
 langfuse_db_data_location: /opt/langfuse/postgres
 langfuse_clickhouse_data_location: /opt/langfuse/clickhouse
-langfuse_minio_data_location: /opt/langfuse/minio
-
 # Docker イメージ
 langfuse_web_image: langfuse/langfuse:3
 langfuse_worker_image: langfuse/langfuse-worker:3
 langfuse_db_image: postgres:17
 langfuse_clickhouse_image: clickhouse/clickhouse-server:latest
 langfuse_redis_image: redis:7-alpine
-langfuse_minio_image: quay.io/minio/minio:latest
 
 # アプリケーション設定
 langfuse_nextauth_url: 'https://{{ langfuse_traefik_host }}'
@@ -30,13 +27,11 @@ langfuse_db_database_name: langfuse
 langfuse_clickhouse_user: langfuse
 langfuse_clickhouse_database: default
 
-# S3 / MinIO 設定
-langfuse_s3_region: us-east-1
-langfuse_s3_force_path_style: 'true'
-langfuse_s3_event_bucket: langfuse
-langfuse_s3_media_bucket: langfuse-media
-langfuse_s3_export_bucket: langfuse-export
-langfuse_s3_endpoint: http://langfuse-minio:9000
+# AWS S3 設定
+langfuse_s3_region: ap-northeast-1
+langfuse_s3_event_bucket: kagiyama-baking-langfuse-event
+langfuse_s3_media_bucket: kagiyama-baking-langfuse-media
+langfuse_s3_export_bucket: kagiyama-baking-langfuse-export
 
 # リソース制限: langfuse-web
 langfuse_web_mem_limit: 2g
@@ -57,7 +52,3 @@ langfuse_clickhouse_cpus: 0.5
 # リソース制限: Redis
 langfuse_redis_mem_limit: 256m
 langfuse_redis_cpus: 0.5
-
-# リソース制限: MinIO
-langfuse_minio_mem_limit: 1g
-langfuse_minio_cpus: 1.0
