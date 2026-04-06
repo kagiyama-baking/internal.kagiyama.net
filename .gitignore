@@ -1,2 +1,8 @@
 .env
 *:Zone.Identifier
+
+# OpenTofu / Terraform
+tofu/.terraform/
+tofu/*.tfstate
+tofu/*.tfstate.*
+tofu/*.tfvars
