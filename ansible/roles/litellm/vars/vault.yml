@@ -1,0 +1,12 @@
+---
+# この内容を ansible-vault encrypt で暗号化してください:
+#   cd ansible && ansible-vault encrypt roles/litellm/vars/vault.yml
+#
+# LiteLLM Proxy マスターキー（Web UIログイン・API認証に使用）
+litellm_vault_master_key: 'CHANGE-ME-litellm-master-key'
+
+# LiteLLM PostgreSQL パスワード
+litellm_vault_db_password: 'CHANGE-ME-litellm-db-password'
+
+# OpenAI API キー
+litellm_vault_openai_api_key: 'CHANGE-ME-openai-api-key'

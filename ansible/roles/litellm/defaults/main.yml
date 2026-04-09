@@ -1,0 +1,30 @@
+---
+# LiteLLM Proxy 設定
+
+# インストールディレクトリ
+litellm_install_dir: /opt/litellm
+
+# データ保存先（永続ボリューム）
+litellm_db_data_location: /opt/litellm/postgres
+
+# Docker イメージ（バージョン固定）
+litellm_proxy_image: litellm/litellm:v1.82.3-stable.patch.3
+litellm_db_image: postgres:17-alpine
+
+# LiteLLM Proxy 設定
+litellm_proxy_port: 4000
+
+# PostgreSQL 設定
+litellm_db_username: litellm
+litellm_db_database_name: litellm
+
+# DB経由モデル管理（Web UIからモデル追加・変更可能）
+litellm_store_model_in_db: 'True'
+
+# リソース制限: LiteLLM Proxy
+litellm_proxy_mem_limit: 1g
+litellm_proxy_cpus: 1.0
+
+# リソース制限: PostgreSQL
+litellm_db_mem_limit: 512m
+litellm_db_cpus: 0.5

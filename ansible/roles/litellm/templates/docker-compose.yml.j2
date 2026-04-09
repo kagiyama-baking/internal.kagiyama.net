@@ -1,0 +1,91 @@
+services:
+  # LiteLLM Proxy（LLMプロバイダー抽象化 + Web UI）
+  litellm-proxy:
+    image: "{{ litellm_proxy_image }}"
+    container_name: litellm-proxy
+    hostname: litellm-proxy
+    restart: unless-stopped
+    command: ["--config", "/app/config.yaml", "--port", "{{ litellm_proxy_port }}"]
+    volumes:
+      - "{{ litellm_install_dir }}/config.yaml:/app/config.yaml:ro"
+    environment:
+      LITELLM_MASTER_KEY: "{{ litellm_vault_master_key }}"
+      DATABASE_URL: "postgresql://{{ litellm_db_username }}:{{ litellm_vault_db_password }}@litellm-database:5432/{{ litellm_db_database_name }}"
+      STORE_MODEL_IN_DB: "{{ litellm_store_model_in_db }}"
+      OPENAI_API_KEY: "{{ litellm_vault_openai_api_key }}"
+    networks:
+      - {{ traefik_network_name }}
+      - litellm-internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.litellm.rule=Host(`{{ litellm_traefik_host }}`)"
+      - "traefik.http.routers.litellm.entrypoints=websecure"
+      - "traefik.http.routers.litellm.tls=true"
+      - "traefik.http.routers.litellm.tls.certresolver=letsencrypt"
+      - "traefik.http.services.litellm.loadbalancer.server.port={{ litellm_proxy_port }}"
+      - "traefik.docker.network={{ traefik_network_name }}"
+    depends_on:
+      litellm-database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:{{ litellm_proxy_port }}/health/liveliness || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: {{ litellm_proxy_mem_limit }}
+    cpus: {{ litellm_proxy_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # PostgreSQL データベース（LiteLLM 設定・APIキー管理）
+  litellm-database:
+    image: "{{ litellm_db_image }}"
+    container_name: litellm-database
+    hostname: litellm-database
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: "{{ litellm_vault_db_password }}"
+      POSTGRES_USER: "{{ litellm_db_username }}"
+      POSTGRES_DB: "{{ litellm_db_database_name }}"
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    volumes:
+      - "{{ litellm_db_data_location }}:/var/lib/postgresql/data"
+    networks:
+      - litellm-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d {{ litellm_db_database_name }} -U {{ litellm_db_username }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    mem_limit: {{ litellm_db_mem_limit }}
+    cpus: {{ litellm_db_cpus }}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  {{ traefik_network_name }}:
+    external: true
+  litellm-internal:
+    driver: bridge
