@@ -1,23 +1,7 @@
 # LiteLLM Proxy 設定
-# Web UI（/ui）からモデルの追加・変更も可能（STORE_MODEL_IN_DB=True）
-# ここではデフォルトモデルを定義する
+# モデルは Web UI（/ui）から追加・管理する（STORE_MODEL_IN_DB=True）
 
-model_list:
-  # OpenAI モデル
-  - model_name: "gpt-4o"
-    litellm_params:
-      model: "openai/gpt-4o"
-      api_key: "os.environ/OPENAI_API_KEY"
-
-  - model_name: "gpt-4o-mini"
-    litellm_params:
-      model: "openai/gpt-4o-mini"
-      api_key: "os.environ/OPENAI_API_KEY"
-
-  - model_name: "text-embedding-3-small"
-    litellm_params:
-      model: "openai/text-embedding-3-small"
-      api_key: "os.environ/OPENAI_API_KEY"
+model_list: []
 
 litellm_settings:
   # プロバイダー非対応パラメータを自動除去
