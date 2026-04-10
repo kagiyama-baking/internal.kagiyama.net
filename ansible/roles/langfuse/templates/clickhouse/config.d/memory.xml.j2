@@ -8,12 +8,4 @@
 
     <!-- 非圧縮ブロックキャッシュ -->
     <uncompressed_cache_size>{{ langfuse_clickhouse_uncompressed_cache_size }}</uncompressed_cache_size>
-
-    <!-- バックグラウンドマージプールサイズ（低 CPU 向け） -->
-    <background_pool_size>{{ langfuse_clickhouse_background_pool_size }}</background_pool_size>
-
-    <!-- background_pool_size 縮小に伴い mutation 用スロット数も縮小 -->
-    <merge_tree>
-        <number_of_free_entries_in_pool_to_execute_mutation>1</number_of_free_entries_in_pool_to_execute_mutation>
-    </merge_tree>
 </clickhouse>
