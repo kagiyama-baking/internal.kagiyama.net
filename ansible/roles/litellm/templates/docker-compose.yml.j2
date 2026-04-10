@@ -10,7 +10,7 @@ services:
       - "{{ litellm_install_dir }}/config.yaml:/app/config.yaml:ro"
     environment:
       LITELLM_MASTER_KEY: "{{ litellm_vault_master_key }}"
-      DATABASE_URL: "postgresql://{{ litellm_db_username }}:{{ litellm_vault_db_password }}@litellm-database:5432/{{ litellm_db_database_name }}"
+      DATABASE_URL: "postgresql://{{ litellm_db_username }}:{{ litellm_vault_db_password | urlencode }}@litellm-database:5432/{{ litellm_db_database_name }}"
       STORE_MODEL_IN_DB: "{{ litellm_store_model_in_db }}"
     networks:
       - {{ traefik_network_name }}
@@ -51,7 +51,7 @@ services:
     hostname: litellm-database
     restart: unless-stopped
     environment:
-      POSTGRES_PASSWORD: "{{ litellm_vault_db_password }}"
+      POSTGRES_PASSWORD: "{{ litellm_vault_db_password | replace('$', '$$') }}"
       POSTGRES_USER: "{{ litellm_db_username }}"
       POSTGRES_DB: "{{ litellm_db_database_name }}"
       POSTGRES_INITDB_ARGS: "--data-checksums"
