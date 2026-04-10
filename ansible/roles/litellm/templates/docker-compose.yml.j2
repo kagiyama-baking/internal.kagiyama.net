@@ -27,7 +27,7 @@ services:
       litellm-database:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:{{ litellm_proxy_port }}/health/liveliness || exit 1"]
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:{{ litellm_proxy_port }}/health/liveliness')"]
       interval: 30s
       timeout: 10s
       retries: 5
