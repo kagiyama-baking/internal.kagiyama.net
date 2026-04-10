@@ -132,9 +132,9 @@ services:
       TZ: UTC
     volumes:
       - "{{ langfuse_clickhouse_data_location }}:/var/lib/clickhouse"
-      - "{{ langfuse_install_dir }}/clickhouse/config.d/memory.xml:/etc/clickhouse-server/config.d/memory.xml:ro"
-      - "{{ langfuse_install_dir }}/clickhouse/config.d/logging.xml:/etc/clickhouse-server/config.d/logging.xml:ro"
-      - "{{ langfuse_install_dir }}/clickhouse/users.d/memory.xml:/etc/clickhouse-server/users.d/memory.xml:ro"
+      - "{{ langfuse_install_dir }}/clickhouse-config/config.d/memory.xml:/etc/clickhouse-server/config.d/memory.xml:ro"
+      - "{{ langfuse_install_dir }}/clickhouse-config/config.d/logging.xml:/etc/clickhouse-server/config.d/logging.xml:ro"
+      - "{{ langfuse_install_dir }}/clickhouse-config/users.d/memory.xml:/etc/clickhouse-server/users.d/memory.xml:ro"
     networks:
       - langfuse-internal
     healthcheck:
