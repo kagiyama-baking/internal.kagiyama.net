@@ -11,7 +11,7 @@
   ansible.builtin.template:
       src: config.yaml.j2
       dest: '{{ litellm_install_dir }}/config.yaml'
-      mode: '0600'
+      mode: '0644'
   notify: LiteLLM を再起動
 
 - name: Docker-compose.yml を配置

@@ -27,6 +27,15 @@ langfuse_db_database_name: langfuse
 langfuse_clickhouse_user: langfuse
 langfuse_clickhouse_database: default
 
+# ClickHouse メモリチューニング（コンテナ 1.5GB 向け）
+langfuse_clickhouse_max_server_memory_usage: 1150000000   # ~1.1GB（絶対値で固定）
+langfuse_clickhouse_mark_cache_size: 268435456            # 256MB（デフォルト5GBから削減）
+langfuse_clickhouse_uncompressed_cache_size: 67108864     # 64MB
+langfuse_clickhouse_max_memory_usage: 1073741824          # 1GB/クエリ
+langfuse_clickhouse_max_memory_usage_for_user: 1073741824 # 1GB/ユーザー
+langfuse_clickhouse_background_pool_size: 2
+langfuse_clickhouse_system_log_ttl_days: 3
+
 # AWS S3 設定
 langfuse_s3_region: ap-northeast-1
 langfuse_s3_event_bucket: kagiyama-baking-langfuse-event
@@ -46,7 +55,7 @@ langfuse_db_mem_limit: 1g
 langfuse_db_cpus: 1.0
 
 # リソース制限: ClickHouse
-langfuse_clickhouse_mem_limit: 1g
+langfuse_clickhouse_mem_limit: 1536m
 langfuse_clickhouse_cpus: 0.5
 
 # リソース制限: Redis

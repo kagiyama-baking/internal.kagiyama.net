@@ -1,0 +1,22 @@
+<!-- ClickHouse システムテーブル TTL（Ansible 管理） -->
+<!-- 無制限に肥大化するシステムテーブルに TTL を設定 -->
+<clickhouse>
+    <query_log>
+        <ttl>event_date + INTERVAL {{ langfuse_clickhouse_system_log_ttl_days }} DAY</ttl>
+    </query_log>
+    <query_thread_log>
+        <ttl>event_date + INTERVAL {{ langfuse_clickhouse_system_log_ttl_days }} DAY</ttl>
+    </query_thread_log>
+    <trace_log>
+        <ttl>event_date + INTERVAL {{ langfuse_clickhouse_system_log_ttl_days }} DAY</ttl>
+    </trace_log>
+    <part_log>
+        <ttl>event_date + INTERVAL {{ langfuse_clickhouse_system_log_ttl_days }} DAY</ttl>
+    </part_log>
+    <metric_log>
+        <ttl>event_date + INTERVAL {{ langfuse_clickhouse_system_log_ttl_days }} DAY</ttl>
+    </metric_log>
+    <asynchronous_metric_log>
+        <ttl>event_date + INTERVAL {{ langfuse_clickhouse_system_log_ttl_days }} DAY</ttl>
+    </asynchronous_metric_log>
+</clickhouse>
