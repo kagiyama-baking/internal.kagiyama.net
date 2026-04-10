@@ -1,0 +1,11 @@
+<!-- ClickHouse ユーザーメモリ制限（Ansible 管理） -->
+<clickhouse>
+    <profiles>
+        <default>
+            <!-- 1 クエリあたりの最大メモリ使用量 -->
+            <max_memory_usage>{{ langfuse_clickhouse_max_memory_usage }}</max_memory_usage>
+            <!-- 1 ユーザーあたりの最大メモリ使用量 -->
+            <max_memory_usage_for_user>{{ langfuse_clickhouse_max_memory_usage_for_user }}</max_memory_usage_for_user>
+        </default>
+    </profiles>
+</clickhouse>

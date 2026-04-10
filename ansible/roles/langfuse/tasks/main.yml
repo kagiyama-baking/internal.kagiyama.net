@@ -7,6 +7,37 @@
   ansible.builtin.include_vars:
       file: vault.yml
 
+# ClickHouse 設定ディレクトリ（config.d / users.d のドロップイン設定用）
+- name: ClickHouse 設定ディレクトリを作成
+  ansible.builtin.file:
+      path: "{{ item }}"
+      state: directory
+      mode: '0755'
+  loop:
+      - "{{ langfuse_install_dir }}/clickhouse/config.d"
+      - "{{ langfuse_install_dir }}/clickhouse/users.d"
+
+- name: ClickHouse サーバーメモリ設定を配置
+  ansible.builtin.template:
+      src: clickhouse/config.d/memory.xml.j2
+      dest: "{{ langfuse_install_dir }}/clickhouse/config.d/memory.xml"
+      mode: '0644'
+  notify: LangFuse を再起動
+
+- name: ClickHouse システムテーブル TTL 設定を配置
+  ansible.builtin.template:
+      src: clickhouse/config.d/logging.xml.j2
+      dest: "{{ langfuse_install_dir }}/clickhouse/config.d/logging.xml"
+      mode: '0644'
+  notify: LangFuse を再起動
+
+- name: ClickHouse ユーザーメモリ制限を配置
+  ansible.builtin.template:
+      src: clickhouse/users.d/memory.xml.j2
+      dest: "{{ langfuse_install_dir }}/clickhouse/users.d/memory.xml"
+      mode: '0644'
+  notify: LangFuse を再起動
+
 - name: 環境変数ファイルを配置
   ansible.builtin.template:
       src: env.j2

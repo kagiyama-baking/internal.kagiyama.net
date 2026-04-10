@@ -1,0 +1,14 @@
+<!-- ClickHouse サーバーメモリ設定（Ansible 管理） -->
+<clickhouse>
+    <!-- サーバー全体のメモリ上限（絶対値で固定） -->
+    <max_server_memory_usage>{{ langfuse_clickhouse_max_server_memory_usage }}</max_server_memory_usage>
+
+    <!-- インデックスマークキャッシュ（デフォルト 5GB は低メモリ環境で過大） -->
+    <mark_cache_size>{{ langfuse_clickhouse_mark_cache_size }}</mark_cache_size>
+
+    <!-- 非圧縮ブロックキャッシュ -->
+    <uncompressed_cache_size>{{ langfuse_clickhouse_uncompressed_cache_size }}</uncompressed_cache_size>
+
+    <!-- バックグラウンドマージプールサイズ（低 CPU 向け） -->
+    <background_pool_size>{{ langfuse_clickhouse_background_pool_size }}</background_pool_size>
+</clickhouse>
