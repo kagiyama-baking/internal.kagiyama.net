@@ -1,0 +1,28 @@
+---
+# ===== LiteLLM Proxy デプロイ =====
+# 前提: setup ロールで /opt/litellm がログインユーザー所有で作成済み
+#       ログインユーザーは docker グループに所属済み
+
+- name: Vault 暗号化変数を読み込み
+  ansible.builtin.include_vars:
+      file: vault.yml
+
+- name: LiteLLM Proxy 設定ファイルを配置
+  ansible.builtin.template:
+      src: config.yaml.j2
+      dest: '{{ litellm_install_dir }}/config.yaml'
+      mode: '0600'
+  notify: LiteLLM を再起動
+
+- name: Docker-compose.yml を配置
+  ansible.builtin.template:
+      src: docker-compose.yml.j2
+      dest: '{{ litellm_install_dir }}/docker-compose.yml'
+      mode: '0600'
+  notify: LiteLLM を再起動
+
+- name: LiteLLM コンテナを起動
+  community.docker.docker_compose_v2:
+      project_src: '{{ litellm_install_dir }}'
+      state: present
+      pull: always

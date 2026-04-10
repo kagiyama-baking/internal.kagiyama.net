@@ -47,6 +47,12 @@
   roles:
       - app
 
+- name: LiteLLM デプロイ
+  hosts: local
+  tags: litellm
+  roles:
+      - litellm
+
 - name: LangFuse デプロイ
   hosts: local
   tags: langfuse

@@ -49,6 +49,9 @@ app_redis_cpus: 0.25
 app_frontend_mem_limit: 128m
 app_frontend_cpus: 0.5
 
+# LiteLLM Proxy 設定（LLMゲートウェイ、Traefik経由）
+app_litellm_proxy_url: https://litellm.internal.kagiyama.net/v1
+
 # Langfuse LLMOps 設定
 app_langfuse_base_url: https://langfuse.internal.kagiyama.net
 app_langfuse_tracing_environment: prd

@@ -1,0 +1,14 @@
+# LiteLLM Proxy 設定
+# モデルは Web UI（/ui）から追加・管理する（STORE_MODEL_IN_DB=True）
+
+model_list: []
+
+litellm_settings:
+  # プロバイダー非対応パラメータを自動除去
+  drop_params: true
+  set_verbose: false
+  num_retries: 2
+  request_timeout: 120
+
+general_settings:
+  master_key: "os.environ/LITELLM_MASTER_KEY"

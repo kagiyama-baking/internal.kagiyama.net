@@ -140,6 +140,7 @@
       - /opt/immich
       - /opt/observability
       - /opt/app
+      - /opt/litellm
       - /opt/langfuse
       - /opt/backup
   become: true
