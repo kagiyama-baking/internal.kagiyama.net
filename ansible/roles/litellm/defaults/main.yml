@@ -21,6 +21,9 @@ litellm_db_database_name: litellm
 # DB経由モデル管理（Web UIからモデル追加・変更可能）
 litellm_store_model_in_db: 'True'
 
+# Langfuse（トレーシング）
+litellm_langfuse_host: "https://langfuse.internal.kagiyama.net"
+
 # リソース制限: LiteLLM Proxy
 litellm_proxy_mem_limit: 1g
 litellm_proxy_cpus: 1.0
