@@ -34,8 +34,10 @@ services:
     depends_on:
       litellm-database:
         condition: service_healthy
+    # LiteLLM の Wolfi ベースイメージには wget/curl が含まれないため、
+    # 同梱の python3 で liveliness を叩く。urlopen は非 2xx で例外を投げる。
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:{{ litellm_proxy_port }}/health/liveliness || exit 1"]
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:{{ litellm_proxy_port }}/health/liveliness', timeout=5)\""]
       interval: 30s
       timeout: 10s
       retries: 5
