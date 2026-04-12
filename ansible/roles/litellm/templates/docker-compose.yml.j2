@@ -10,7 +10,9 @@ services:
       - "{{ litellm_install_dir }}/config.yaml:/app/config.yaml:ro"
     environment:
       LITELLM_MASTER_KEY: "{{ litellm_vault_master_key }}"
-      DATABASE_URL: "postgresql://{{ litellm_db_username }}:{{ litellm_vault_db_password }}@litellm-database:5432/{{ litellm_db_database_name }}"
+      # パスワードに URL 予約文字 (@, : 等) が含まれる場合に DATABASE_URL が壊れるため、
+      # URL に埋め込む箇所のみ urlencode する。POSTGRES_PASSWORD 側は生の値が必要。
+      DATABASE_URL: "postgresql://{{ litellm_db_username }}:{{ litellm_vault_db_password | urlencode }}@litellm-database:5432/{{ litellm_db_database_name }}"
       STORE_MODEL_IN_DB: "{{ litellm_store_model_in_db }}"
       LANGFUSE_PUBLIC_KEY: "{{ litellm_vault_langfuse_public_key }}"
       LANGFUSE_SECRET_KEY: "{{ litellm_vault_langfuse_secret_key }}"
