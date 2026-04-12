@@ -16,6 +16,9 @@ services:
       LANGFUSE_PUBLIC_KEY: "{{ litellm_vault_langfuse_public_key }}"
       LANGFUSE_SECRET_KEY: "{{ litellm_vault_langfuse_secret_key }}"
       LANGFUSE_HOST: "{{ litellm_langfuse_host }}"
+      # 未認証での API 仕様露出を避けるため Swagger UI / ReDoc を無効化
+      NO_DOCS: "True"
+      NO_REDOC: "True"
     networks:
       - {{ traefik_network_name }}
       - litellm-internal
