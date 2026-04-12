@@ -143,5 +143,6 @@ jobs:
                   rm -f "$VAULT_TMP"
 
                   # 環境変数経由でパラメータを渡す（引数に含めない）
+                  # trap で後始末し、bash の exit code を ssh の終了コードへ伝播させる
                   ssh $SSH_OPTS "${REMOTE}" \
-                      "DEPLOY_DIR='${DEPLOY_DIR}' CHANGED_ROLES='${CHANGED_ROLES}' bash /tmp/${DEPLOY_ID}.sh; rm -f /tmp/${DEPLOY_ID}.sh"
+                      "trap 'rm -f /tmp/${DEPLOY_ID}.sh' EXIT; DEPLOY_DIR='${DEPLOY_DIR}' CHANGED_ROLES='${CHANGED_ROLES}' bash /tmp/${DEPLOY_ID}.sh"
