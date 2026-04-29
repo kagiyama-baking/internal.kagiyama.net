@@ -9,18 +9,19 @@
 
 - name: ボリュームディレクトリを作成
   ansible.builtin.file:
-      path: "{{ item }}"
+      path: '{{ item }}'
       state: directory
       mode: '0755'
   loop:
-      - "{{ app_install_dir }}/django-api"
-      - "{{ app_install_dir }}/django-api/staticfiles"
-      - "{{ app_install_dir }}/frontend"
+      - '{{ app_install_dir }}/django-api'
+      - '{{ app_install_dir }}/django-api/staticfiles'
+      - '{{ app_install_dir }}/django-api/media'
+      - '{{ app_install_dir }}/frontend'
 
 - name: Nginx 設定ファイルを配置
   ansible.builtin.template:
       src: nginx.conf.j2
-      dest: "{{ app_install_dir }}/frontend/nginx.conf"
+      dest: '{{ app_install_dir }}/frontend/nginx.conf'
       mode: '0644'
   notify: App を再起動
 
