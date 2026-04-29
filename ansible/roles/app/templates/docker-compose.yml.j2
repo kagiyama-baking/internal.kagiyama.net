@@ -9,6 +9,7 @@ services:
       - .env
     volumes:
       - "{{ app_install_dir }}/django-api/staticfiles:/django_api/staticfiles"
+      - "{{ app_install_dir }}/django-api/media:/django_api/media"
     networks:
       - app-internal
     depends_on:
