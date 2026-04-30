@@ -33,6 +33,14 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    # ECMAScript モジュール（.mjs）の MIME type 明示。
+    # nginx 同梱 mime.types で application/octet-stream 扱いになることがあり、
+    # X-Content-Type-Options: nosniff と組み合わさってブラウザが JS として解釈せず、
+    # pdf.js などの動的 import が失敗するため上書きする。
+    location ~ \.mjs$ {
+        types { } default_type application/javascript;
+    }
+
     # SPA フォールバック
     location / {
         try_files $uri $uri/ /index.html;
