@@ -88,7 +88,7 @@ Ansible のためコード import 概念は薄いが、ロール内・ロール�
 - **ロール独立性**: あるロールの実装は他ロールの `tasks/` や `templates/` を直接参照しない。共有が必要な値は `group_vars/local.yml` に昇格する
 - **Docker Compose は templates/ にのみ**: Compose 定義は必ず Jinja2 化（`docker-compose.yml.j2`）し、ロール変数で差分を吸収する
 - **変更通知は handlers 経由**: テンプレート更新時はタスクから `notify:` で handlers/main.yml の再起動ハンドラを発火する（タスク内で直接 `docker compose restart` を呼ばない）
-- **ロールの追加は 5 点セットで同時更新**: (1) `site.yml` にプレイ追加、(2) `Makefile` に `<role>` / `deploy-<role>` ターゲットと `.PHONY` を追加、(3) `.github/workflows/deploy.yml` のロール列挙 5 箇所に追加、(4) `roles/<role>/README.md` を作成、(5) `ansible/README.md` のロール一覧表へ追加。漏れは docs check CI が検出する（正確な手順は `ansible/README.md` の「ロールの追加方法」が正）
+- **ロールの追加は 5 点セットで同時更新**: (1) `roles/<role>/` を作成（README.md 含む）、(2) `site.yml` にプレイ追加、(3) `Makefile` に `<role>` / `deploy-<role>` ターゲットと `.PHONY` を追加、(4) `.github/workflows/deploy.yml` のロール列挙 5 箇所に追加、(5) `ansible/README.md` のロール一覧表とルート README へ追加。漏れは docs check CI が検出する（正確な手順は `ansible/README.md` の「ロールの追加方法」が正）
 - **`vars/vault.yml` は直接 main へ push 可**: 暗号化済みのため、ブランチ運用の例外として直接 push が許可される（`CLAUDE.md` のブランチ戦略を参照）
 
 ---

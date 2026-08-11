@@ -3,7 +3,7 @@
 UTM 上に Ubuntu Server を新規構築し、Ansible 管理下に置くまでの手順。
 既存サーバの**全損からの復旧（再構築 + データリストア）**もこの手順を基点とする。
 
-現行本番: Ubuntu Server 24.04 LTS（Mac mini 2018 上の UTM ゲスト）。再構築時も最新 LTS を使用する。
+現行本番の環境は [README.md](../README.md) の「環境」を参照。再構築時は最新の Ubuntu Server LTS を使用する。
 
 ## 1. VM の作成
 

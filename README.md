@@ -146,8 +146,8 @@ graph LR
     Autorestic["autorestic<br>(ホスト cron 03:00)"] -.->|"暗号化バックアップ"| S3
 ```
 
-> **Note:** ポート番号はコンテナ内部ポート。Portainer(:9443)、Immich(:2283)、Grafana(:3000) は
-> ホストの `127.0.0.1` にもバインドされるが、通常は Traefik 経由でアクセスする。
+> **Note:** ポート番号はコンテナ内部ポート。Portainer(:9443 HTTPS。図中の :9000 は Traefik のルーティング先)、
+> Immich(:2283)、Grafana(:3000) はホストの `127.0.0.1` にもバインドされるが、通常は Traefik 経由でアクセスする。
 > Django API・Celery・各 DB はホストに公開されない。全コンテナの DNS 上流は CoreDNS に固定されている（[docs/dns.md](docs/dns.md)）。
 > autorestic はコンテナではなくホスト上の cron で動作し、Immich の DB・ライブラリと app の DB を S3 へバックアップする。
 
@@ -162,6 +162,7 @@ graph LR
 ├── docs/              # 運用手順書（初期構築・バックアップ・DNS・障害対応）
 ├── tofu/              # OpenTofu（LangFuse 用 AWS リソース）
 ├── scripts/           # ドキュメント整合性チェック（CI から実行）
+├── .claude/           # AI エージェント設定（プロジェクト規約・doc-sync スキル）
 └── .github/workflows/ # CI/CD 定義
 ```
 
@@ -174,8 +175,9 @@ graph LR
 | DNS の設計と不変条件 | [docs/dns.md](docs/dns.md) |
 | 障害時の調査手順・予防原則 | [docs/troubleshooting.md](docs/troubleshooting.md) |
 | Ansible の規約・Vault 運用・ロール追加手順 | [ansible/README.md](ansible/README.md) |
-| 各サービスの構成・変数・運用上の注意 | `ansible/roles/<ロール名>/README.md`（[サービス構成](#サービス構成)の表からリンク） |
+| 各サービスの構成・変数・運用上の注意 | `ansible/roles/<ロール名>/README.md`（[サービス構成](#サービス構成)の表からリンク。setup・test は [ansible/README.md](ansible/README.md) のロール一覧から） |
 | OpenTofu の使い方・state 管理 | [tofu/README.md](tofu/README.md) |
+| 変更時にどのドキュメントを直すか（更新ルール） | [.claude/skills/doc-sync/SKILL.md](.claude/skills/doc-sync/SKILL.md)（運用規則は [.claude/CLAUDE.md](.claude/CLAUDE.md)） |
 
 ## デプロイ
 
@@ -209,7 +211,7 @@ make deploy-test SSH_HOST=my-server # 接続先を一時的に変更する例
 
 ## バックアップ
 
-autorestic（restic のラッパー）で、Immich の DB・写真ライブラリと kawashiro-server の DB を毎日 03:00 に AWS S3 へ暗号化バックアップしています。
+autorestic（restic のラッパー）で、Immich の DB・写真ライブラリと kawashiro-server の DB を毎日自動で AWS S3 へ暗号化バックアップしています。
 
 - 仕組み・手動実行・**リストア手順**: [docs/backup-restore.md](docs/backup-restore.md)
 - 対象・対象外の一覧と理由: [backup ロール README](ansible/roles/backup/README.md)

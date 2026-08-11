@@ -49,7 +49,7 @@
 1. `journalctl -t autorestic-backup` で失敗箇所を特定（pg_dump / autorestic backup / forget のどこか）
 2. `make backup-status` でリポジトリ整合性とスナップショット一覧を確認
 3. S3 接続・認証情報（vault）・対象コンテナ（immich-database / app-database）の稼働を確認
-4. アラート「バックアップが 26 時間実施されていない」は cron 停止・サーバ再起動後の未実行も疑う（`crontab -l`）
+4. アラート「バックアップが一定時間実施されていない」（閾値は observability の `defaults/main.yml` 参照）は cron 停止・サーバ再起動後の未実行も疑う（`crontab -l`）
 
 手順の詳細は [docs/backup-restore.md](backup-restore.md)。
 
