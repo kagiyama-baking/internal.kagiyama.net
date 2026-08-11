@@ -20,6 +20,15 @@ traefik_acme_staging: false
 # AWS リージョン（Route 53 DNS-01 チャレンジ用）
 traefik_aws_region: ap-northeast-1
 
+# Traefik コンテナが名前解決に使う DNS サーバ
+# Docker はコンテナ作成時点のホスト /etc/resolv.conf を埋め込み DNS(127.0.0.11) の上流として固定する。
+# ホスト側の値は Tailscale MagicDNS 等により変動するため、応答しない値が固定されると
+# Let's Encrypt/Route 53 への接続が名前解決で失敗し、証明書の自動更新が恒久的に停止する。
+# 上流を明示指定してホストの設定から切り離す（127.0.0.11 自体は維持されコンテナ名解決は不変）。
+traefik_dns_servers:
+    - 8.8.8.8
+    - 8.8.4.4
+
 # DNS-01 チャレンジの伝播確認に使用する DNS サーバ
 # CoreDNS がシステム DNS の場合、権威 NS の自動検出が妨害されるため明示的に指定する
 traefik_acme_resolvers:
