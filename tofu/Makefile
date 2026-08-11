@@ -8,6 +8,8 @@
 #   make destroy   # リソースを削除
 #   make output    # 出力値を表示
 #   make secret    # シークレットアクセスキーを表示（Ansible vault 格納用）
+#   make fmt       # コードフォーマット
+#   make validate  # 構文チェック
 # ==============================================================================
 
 .PHONY: init plan apply destroy output secret fmt validate
