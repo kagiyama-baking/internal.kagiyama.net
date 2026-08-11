@@ -38,7 +38,7 @@ Ansibleを使用して、サーバのセットアップや構成管理を自動�
 ## 環境
 
 - ホストマシン: Mac mini (2018)
-- ゲストマシン: Ubuntu Server 22.04.4 (UTM上)
+- ゲストマシン: Ubuntu Server 24.04.4 LTS (UTM上)
 
 ## サービス構成
 
@@ -253,8 +253,7 @@ graph LR
 11. テスト用プレイブックを実行して動作確認
 
     ```bash
-    cd ansible # ansibleディレクトリに移動
-    make test  # テスト用プレイブックを実行
+    make test # リポジトリルートで実行（テスト用プレイブック）
     ```
 
 ## デプロイ
@@ -305,7 +304,7 @@ make deploy-test SSH_HOST=my-server
 
 ### サーバ上で直接実行
 
-サーバにSSHログインした状態で、`ansible/` ディレクトリ内から直接実行できます。
+サーバにSSHログインした状態で、リポジトリルートから直接実行できます。
 
 | コマンド             | 説明                                                 |
 | -------------------- | ---------------------------------------------------- |
@@ -339,9 +338,9 @@ make deploy-test SSH_HOST=my-server
 
 | Location | 内容 | バックアップ方法 |
 |----------|------|------------------|
-| `immich-db` | Immich の PostgreSQL 全データベース | `docker exec pg_dumpall` でダンプ後にバックアップ |
+| `immich-db` | Immich の PostgreSQL データベース | `pg_dump` でダンプ後にバックアップ |
 | `immich-library` | Immich の写真・動画ファイル（`/opt/immich/library`） | ディレクトリを直接バックアップ |
-| `app-db` | kawashiro-server の SQLite データベース | `sqlite3 .backup` でコピー後にバックアップ |
+| `app-db` | kawashiro-server の PostgreSQL データベース | `pg_dump` でダンプ後にバックアップ |
 
 ### 手動実行
 
@@ -379,8 +378,8 @@ PATH=/opt/backup/bin:$PATH autorestic restore -l immich-db -c .autorestic.yml --
 PATH=/opt/backup/bin:$PATH autorestic restore -l immich-library -c .autorestic.yml --to /tmp/restore-immich-lib
 
 # 2. 復元されたファイルを確認（バックアップ時の絶対パス構造で展開される）
-ls /tmp/restore-app/opt/backup/dumps/app/db.sqlite3
-ls /tmp/restore-immich-db/opt/backup/dumps/immich/pg_dump.sql
+ls /tmp/restore-app/opt/backup/dumps/app/kawashiro.sql
+ls /tmp/restore-immich-db/opt/backup/dumps/immich/immich.sql
 ls /tmp/restore-immich-lib/opt/immich/library/
 
 # 3. 内容を確認してから本番パスにコピー
