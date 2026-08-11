@@ -32,4 +32,4 @@ UTM上のUbuntu Server環境をAnsibleで管理するためのリポジトリ。
 ## デプロイ
 
 プロジェクトルートの `Makefile` から `make deploy-*` で実行。
-詳細は [README.md](README.md) を参照。
+詳細は [README.md](../README.md) を参照。
