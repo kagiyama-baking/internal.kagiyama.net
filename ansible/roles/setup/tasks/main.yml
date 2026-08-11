@@ -101,6 +101,22 @@
       update_cache: true
   become: true
 
+- name: Dockerデーモン設定ディレクトリを作成
+  ansible.builtin.file:
+      path: /etc/docker
+      state: directory
+      mode: '0755'
+  become: true
+
+# コンテナの DNS 上流をホストの /etc/resolv.conf から切り離す（変数の定義理由は defaults を参照）
+- name: Dockerデーモン設定を配置
+  ansible.builtin.copy:
+      content: "{{ setup_docker_daemon_config | to_nice_json }}\n"
+      dest: /etc/docker/daemon.json
+      mode: '0644'
+  become: true
+  notify: Docker を再起動
+
 - name: Dockerサービスを有効化・起動
   ansible.builtin.systemd:
       name: docker

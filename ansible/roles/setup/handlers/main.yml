@@ -4,3 +4,9 @@
       name: systemd-resolved
       state: restarted
   become: true
+
+- name: Docker を再起動
+  ansible.builtin.systemd:
+      name: docker
+      state: restarted
+  become: true
