@@ -1,13 +1,21 @@
 ---
 # Docker デーモン設定（/etc/docker/daemon.json として配置）
 #
-# dns を明示指定する理由:
-# Docker はコンテナ作成時点のホスト /etc/resolv.conf を、埋め込み DNS(127.0.0.11) の
-# 上流として固定的に埋め込む。ホスト側の値は Tailscale MagicDNS 等により変動するため、
-# 応答しない値を掴んだコンテナは外部名前解決が恒久的に失敗する（PR #112 の Traefik 障害）。
-# デーモン側で上流を固定し、以後作成される全コンテナをホスト設定の変動から切り離す。
+# dns に CoreDNS（このホスト自身）を指定する理由:
+# Docker はコンテナ起動時点のホスト /etc/resolv.conf を、埋め込み DNS(127.0.0.11) の上流として
+# 保持する。ホスト側の値は Tailscale MagicDNS 等により変動するため、応答しない値を掴んだ
+# コンテナは名前解決が恒久的に失敗する（PR #112 の証明書更新停止の原因）。
+# デーモン側で上流を固定し、全コンテナをホスト設定の変動から切り離す。
+#
+# 上流は必ず CoreDNS を指すこと。8.8.8.8 等の外部 DNS を直接指定してはならない。
+# *.internal.kagiyama.net は CoreDNS の hosts プラグインが返す内部専用レコードであり、
+# パブリック DNS には存在しない。外部 DNS を直接指定すると django-api や litellm-proxy が
+# 内部ドメインを解決できなくなる（PR #113 で実際に発生させた障害）。
+# CoreDNS は内部レコードを hosts で返し、それ以外は forward で外部へ転送するため双方を満たす。
+#
+# 値はホストのデフォルトルート由来 IP を fact から取得する。coredns_vault_ip_internal と
+# 同じ値だが、make setup は --ask-become-pass のみで vault を復号できないため fact を使う。
 # コンテナ内の nameserver は 127.0.0.11 のまま維持されるため、コンテナ名解決には影響しない。
 setup_docker_daemon_config:
     dns:
-        - 8.8.8.8
-        - 8.8.4.4
+        - "{{ ansible_facts['default_ipv4']['address'] }}"
