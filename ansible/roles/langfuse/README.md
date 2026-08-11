@@ -74,7 +74,7 @@ Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pas
 
 ## 運用上の注意
 
-- **ClickHouse だけがバージョン非固定**。`langfuse_clickhouse_image` は `:latest` を指しており、他ロール・他コンテナがすべてバージョン固定であるのに対しここだけ例外になっている。`pull: always` で再起動するたびに上流の最新版へ入れ替わり得るため、再起動後に ClickHouse が起動しない場合はまずイメージの更新を疑う。既知のリスクとして記録する
+- **ClickHouse だけがバージョン非固定**（`langfuse_clickhouse_image`、現値は `defaults/main.yml` 参照）。他ロール・他コンテナがすべてバージョン固定であるのに対しここだけ例外で、`pull: always` により再起動のたびに上流の最新版へ入れ替わり得る。再起動後に ClickHouse が起動しない場合はまずイメージの更新を疑う。既知のリスクとして記録する（タグを固定化した場合はこの記述も更新すること）
 - **シングルノード構成には `CLICKHOUSE_CLUSTER_ENABLED=false` が必須**。デフォルトは true で、その場合 LangFuse のマイグレーションが ZooKeeper / ClickHouse Keeper を要求して起動に失敗する。`.env` から外さないこと
 - **`HOSTNAME=0.0.0.0` が必要**。既定のままではコンテナ内でループバックにしか bind されず、Traefik や healthcheck から到達できない
 - **S3 バケット 3 つ（event / media / export）は `tofu/` で管理**する。バケットと IAM ユーザーを作り直した場合は `cd tofu && make secret` でアクセスキーを取得し、vault の `langfuse_vault_s3_*` を更新してから本ロールを再デプロイする。詳細は [tofu/README.md](../../../tofu/README.md) を参照

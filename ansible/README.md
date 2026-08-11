@@ -66,8 +66,9 @@ roles/<ロール名>/
 4. `.github/workflows/deploy.yml` のロール列挙 **5 箇所**（workflow_dispatch の default / `ALLOWED_ROLES` / `roles=` の echo ×2 / for ループ）に追加する
 5. この README のロール一覧表と、ルート README のサービス構成表・コマンド表・アーキテクチャ図に追加する
 
-あわせて次の 2 点を明示的に判断すること。
+あわせて次の 3 点も更新・判断すること。
 
+- 初期構築手順: [docs/initial-setup.md](../docs/initial-setup.md) の「全ロールのデプロイ」の順序リストに追加する
 - 監視: `observability_alert_containers`（[observability ロール](roles/observability/README.md)）に追加するか
 - バックアップ: location を追加するか、[backup ロール README](roles/backup/README.md) の対象外表に理由付きで記載するか
 
@@ -117,7 +118,7 @@ roles/<ロール名>/
 ### 実行時
 
 Vault を使用するロールの実行時は Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pass` 組み込み済み）。
-Vault 不要のロールは test / setup / portainer の 3 つ。
+Vault 不要のロールは test / setup / portainer（それ以外の全ロールが `vars/vault.yml` を持つ）。
 
 ```bash
 make coredns    # Vault パスワードの入力を求められる
@@ -130,7 +131,7 @@ make portainer  # Vault 不要、そのまま実行できる
 - **CI への受け渡し**: `deploy.yml` が Secrets の値を一時ファイルとしてサーバへ scp し、`--vault-password-file` で使用後に trap で削除する（パスワードをコマンド引数に含めない）
 - **喪失リスク**: vault の中身（特に restic パスワード）を失うとバックアップの復元が不可能になる。Vault パスワードは必ず複数箇所に保管する
 - **ローテーション手順**:
-    1. `ansible/` で `ansible-vault rekey roles/*/vars/vault.yml`（vault を持つ 8 ロール分。旧 → 新パスワードを入力）
+    1. `ansible/` で `ansible-vault rekey roles/*/vars/vault.yml`（glob で vault を持つ全ロールが対象になる。旧 → 新パスワードを入力）
     2. GitHub Secrets `ANSIBLE_VAULT_PASSWORD` を新パスワードに更新
     3. パスワードマネージャを更新
     4. 任意の Vault 使用ロールを `make deploy-<ロール名>` で実行し、復号できることを確認
