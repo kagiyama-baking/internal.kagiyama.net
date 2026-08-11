@@ -454,6 +454,14 @@ PR作成時に `yamllint` と `ansible-lint` を自動実行します。
 
 > **Note:** `setup` ロールは `--ask-become-pass`（sudo）が必要なため、CD から除外しています。
 
+### CI: Docs Check
+
+ドキュメントとコードの整合性（ロール一覧・Make ターゲット・Markdown リンク切れ・監視対象コンテナ名など 9 項目）を自動検証します。
+
+- **トリガー**: `main` へのPR（ドキュメント・`ansible/**`・`Makefile` 等の変更時）、手動実行
+- **ワークフロー**: `.github/workflows/docs_check.yml`
+- **ローカル実行**: `uv run python scripts/check_docs.py`
+
 ## Ansible の詳細
 
 ロール構成、Vault 管理、ディレクトリ構成の詳細は [ansible/README.md](ansible/README.md) を参照してください。
