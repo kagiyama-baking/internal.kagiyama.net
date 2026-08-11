@@ -27,7 +27,8 @@ UTM上のUbuntu Server環境をAnsibleで管理するためのリポジトリ。
 
 ## ドキュメント
 
-- ロールやMakeターゲットの追加・変更時は、プロジェクト内の各README.mdが最新か確認し、必要に応じて更新すること
+- ロール・Makeターゲット・変数・CI・tofu の追加変更時は、**doc-sync スキル**（`.claude/skills/doc-sync/SKILL.md`）で更新対象のドキュメントを特定し、あわせて更新すること
+- PR 作成前に `uv run python scripts/check_docs.py` を実行し、exit 0 を確認すること（CI の Docs Check と同一の検査）
 
 ## デプロイ
 
