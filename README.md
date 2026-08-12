@@ -162,7 +162,8 @@ graph LR
 ├── docs/              # 運用手順書（初期構築・バックアップ・DNS・障害対応）
 ├── tofu/              # OpenTofu（LangFuse 用 AWS リソース）
 ├── scripts/           # ドキュメント整合性チェック（CI から実行）
-├── .claude/           # AI エージェント設定（プロジェクト規約・doc-sync スキル）
+├── .claude/           # AI エージェント設定（プロジェクト規約・doc-sync スキル・Kiro ツール群）
+├── .kiro/             # Kiro SDD（steering = プロジェクト知識、settings = ツール定義）
 └── .github/workflows/ # CI/CD 定義
 ```
 
