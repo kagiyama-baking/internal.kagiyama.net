@@ -3,7 +3,7 @@
 portainer_install_dir: /opt/portainer
 
 # Docker イメージ
-portainer_image: portainer/portainer-ce:2.25.1
+portainer_image: portainer/portainer-ce:2.45.3
 
 # Web UI ポート（HTTPS）
 portainer_https_port: 9443
