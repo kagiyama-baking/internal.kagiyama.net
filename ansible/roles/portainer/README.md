@@ -13,7 +13,7 @@ site.yml のタグは `portainer`。CD（`.github/workflows/deploy.yml` の `ALL
 | --- | --- | --- | --- |
 | `portainer` | `portainer/portainer-ce`（タグは `defaults/main.yml` 参照） | 9000（HTTP）、9443（HTTPS） | Docker 管理 UI |
 
-Traefik のルーティング先は 9000。9443 は `portainer_bind_address` に指定したアドレスにのみ公開する。Docker ソケットは読み取り専用でマウントし、`no-new-privileges`・`cap_drop: ALL` とメモリ・CPU・PID の上限を設定している。
+Traefik のルーティング先は 9000。9443 は `portainer_bind_address` に指定したアドレスにのみ公開する。Docker ソケットは読み取り専用でマウントし（`:ro` でも Docker API の操作は制限されない）、`no-new-privileges`・`cap_drop: ALL` とメモリ・CPU・PID の上限を設定している。
 
 ## 配置ファイル
 
@@ -50,7 +50,20 @@ Vault パスワード・sudo パスワードのいずれも不要。
 
 - サービスロールのうち**Vault を使わないのはこのロールだけ**で、その例外が 2 箇所に実装されている。ルート `Makefile` の `portainer` ターゲットには `--ask-vault-pass` が無く、`.github/workflows/deploy.yml` のデプロイスクリプトにも `portainer` だけ `--vault-password-file` を渡さない分岐がある。このロールに vault 変数を導入するなら**両方の修正が必要**で、片方だけだとローカル実行か CD のどちらかが失敗する
 - Portainer のデータは `portainer_portainer_data` にあり**バックアップ対象外**（backup ロールが扱うのは Immich の DB・ライブラリと app の DB のみ）。UI 上で作った設定は失われると復元できないため、恒久的な構成は Ansible 側に持たせること
-- **バージョンアップの前にデータの控えを取る**。起動時にデータが移行され、移行後のデータでは旧版は起動を拒否する（`The database schema version does not align with the server version`）。切り戻しには控えからの復元が必要になる。Portainer を止めて `docker run --rm --network none -v portainer_portainer_data:/data:ro alpine:3 tar czf - -C /data . > ~/portainer-pre-vX-YYYYMMDD.tar.gz` で取得し、権限を 0600 にする。パスワードハッシュや鍵を含む
+- **バージョンアップの前にデータの控えを取る**。起動時にデータが移行され、移行後のデータでは旧版は起動を拒否する（`The database schema version does not align with the server version`）ため、切り戻しには控えからの復元が必要になる。main へのマージで自動適用されるので、**マージの前に**取得して中身を確認すること。控えにはパスワードハッシュや鍵が含まれる
+
+    ```bash
+    # 取得（-v は存在しないボリュームを自動で作るので、先に実在を確認する）
+    docker volume inspect portainer_portainer_data > /dev/null
+    docker stop portainer
+    (umask 077; docker run --rm --network none -v portainer_portainer_data:/data:ro alpine:3 tar czf - -C /data . > ~/portainer-pre-vX-YYYYMMDD.tar.gz)
+    docker start portainer
+    tar tzf ~/portainer-pre-vX-YYYYMMDD.tar.gz | grep portainer.db
+
+    # 切り戻し（中身を戻してから旧タグをデプロイする）
+    docker stop portainer
+    docker run --rm -i --network none -v portainer_portainer_data:/data alpine:3 sh -c 'find /data -mindepth 1 -delete && tar xzf - -C /data' < ~/portainer-pre-vX-YYYYMMDD.tar.gz
+    ```
 - 9443 は既定で `127.0.0.1` にのみ公開している。ホスト外から直接アクセスできないのは意図どおりで、外部からは Traefik 経由の HTTPS のみ。ホスト上での切り分けには `curl -k https://127.0.0.1:9443` を使う
 - ルーティングとネットワーク（`traefik-public`）は traefik ロールに依存する。Traefik 未デプロイの環境ではコンテナ起動時に外部ネットワークの参照が失敗する
 - 適用先はインベントリ `ansible/inventories/local/hosts` の `local` グループ。開発機で `ansible-playbook` を直接叩くと**開発機自身**に適用されるため、サーバへ適用する場合は必ず `make deploy-portainer` を使う
