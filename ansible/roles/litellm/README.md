@@ -70,7 +70,7 @@ Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pas
 - **`DATABASE_URL` に埋め込むパスワードは urlencode 必須**。`@` `:` `/` `#` `?` `&` `%` `+` などの URL 予約文字が含まれるとパーサーが壊れ、`P1013: invalid port number in database URL` のような原因の分かりにくいエラーになる。テンプレートでは URL に埋め込む箇所にのみ `urlencode` フィルタを適用しており、`POSTGRES_PASSWORD` には生の値を渡している。この非対称性を崩さないこと
 - **healthcheck に `curl` / `wget` を使わない**。LiteLLM のコンテナイメージは Wolfi ベースで `curl` も `wget` も含まないため、これらを使う healthcheck は exit 127 で常に失敗し、Traefik が unhealthy な backend を除外して外部から 404 になる。同梱の `python3` ＋ `urllib.request` で liveliness を叩く実装にしてある
 - **`config.yaml` は 0644 で配置している**。`cap_drop: ALL` ＋ `no-new-privileges` のコンテナでは root でも他ユーザー所有の 0600 ファイルを読めない（CAP_DAC_READ_SEARCH を失うため）。`config.yaml` はシークレットを含まない（master_key は環境変数参照、モデル定義は DB 管理）ので 0644 で問題ない。逆に、このファイルへシークレットを書き足してはならない
-- **LangFuse へのトレース送信**は `config.yaml` の `success_callback` / `failure_callback` で有効化しており、認証キーは vault の `litellm_vault_langfuse_*` にある。LangFuse 側でキーをローテートしたら vault も更新すること
+- **LangFuse へのトレース送信**は `config.yaml` の `success_callback` / `failure_callback` で有効化しており、認証キーは vault の `litellm_vault_langfuse_*` にある。LangFuse 側でキーをローテートしたら vault も更新すること。キーが誤っていても LLM 呼び出しは成功し、ログに `Langfuse rejected an export ... HTTP 401` が出るだけなので気づきにくい。アプリ（app ロール）も自前でトレースを送るため、同じ呼び出しのトレースが 2 件記録される
 - **起動時に DB スキーマが自動で修正される**。LiteLLM は起動時に DB とスキーマ定義の差分を検出すると、差分 SQL を自動で適用し、`_prisma_migrations` に `*_baseline_diff` という名前で記録する。スキーマ定義にない列はこの処理で消えるため、DB へ手動で DDL を当てても残らない
 - **バージョンアップの前に別名でダンプを取る**。DB はバックアップ対象外で、スキーマ移行後の切り戻しはダンプからの復元しかない。`docker exec litellm-database pg_dump -U litellm litellm` の出力を `~/litellm-pre-vX-YYYYMMDD.sql`（権限 0600）へ保存し、完了マーカー `PostgreSQL database dump complete` と主要テーブルの行数一致を確認する。ダンプにはプロンプトが含まれる。切り戻しは `litellm-proxy` を停止して DB を作り直し、ダンプを流し込んでから旧タグをデプロイする
 
