@@ -59,7 +59,9 @@ Swagger UI / ReDoc は未認証での API 仕様露出を避けるため `NO_DOC
 | 開発機 | `make deploy-litellm` |
 
 Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pass` 組み込み済み）。sudo パスワードは不要。
-`config.yaml` または `docker-compose.yml` に差分が出るとハンドラ「LiteLLM を再起動」が走り、`litellm-proxy` と `litellm-database` の両方が `pull: always` 付きで再起動される。差分が無い場合もタスク側で `state: present` ＋ `pull: always` を実行するため、イメージタグを更新すれば新イメージが取得される。
+`config.yaml` に差分が出るとハンドラ「LiteLLM を再起動」が走り、`litellm-proxy` と `litellm-database` の両方が再起動される（イメージは更新されない）。
+`docker-compose.yml` の差分（イメージタグの更新など）はハンドラを発火させず、タスク側の `state: present` ＋ `pull: always` がコンテナを再作成して反映する（理由は `tasks/main.yml` のコメントを参照）。
+`config.yaml` とイメージタグは同じ変更に混ぜないこと。再作成の直後にハンドラが走り、起動時の migration を中断するおそれがある。
 
 ## 運用上の注意
 
@@ -69,7 +71,8 @@ Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pas
 - **healthcheck に `curl` / `wget` を使わない**。LiteLLM のコンテナイメージは Wolfi ベースで `curl` も `wget` も含まないため、これらを使う healthcheck は exit 127 で常に失敗し、Traefik が unhealthy な backend を除外して外部から 404 になる。同梱の `python3` ＋ `urllib.request` で liveliness を叩く実装にしてある
 - **`config.yaml` は 0644 で配置している**。`cap_drop: ALL` ＋ `no-new-privileges` のコンテナでは root でも他ユーザー所有の 0600 ファイルを読めない（CAP_DAC_READ_SEARCH を失うため）。`config.yaml` はシークレットを含まない（master_key は環境変数参照、モデル定義は DB 管理）ので 0644 で問題ない。逆に、このファイルへシークレットを書き足してはならない
 - **LangFuse へのトレース送信**は `config.yaml` の `success_callback` / `failure_callback` で有効化しており、認証キーは vault の `litellm_vault_langfuse_*` にある。LangFuse 側でキーをローテートしたら vault も更新すること
-- **migration 不整合の履歴あり**。過去に、追加された `source_url` 列が後続 migration で drop される不整合があり、公式の復元 migration SQL を本番 DB へ手動適用して対処している。この適用は `_prisma_migrations` テーブルに登録されていないため、将来のアップグレード時に `prisma migrate resolve` が必要になる可能性がある。詳細は [docs/troubleshooting.md](../../../docs/troubleshooting.md) を参照
+- **起動時に DB スキーマが自動で修正される**。LiteLLM は起動時に DB とスキーマ定義の差分を検出すると、差分 SQL を自動で適用し、`_prisma_migrations` に `*_baseline_diff` という名前で記録する。スキーマ定義にない列はこの処理で消えるため、DB へ手動で DDL を当てても残らない
+- **バージョンアップの前に別名でダンプを取る**。DB はバックアップ対象外で、スキーマ移行後の切り戻しはダンプからの復元しかない。`docker exec litellm-database pg_dump -U litellm litellm` の出力を `~/litellm-pre-vX-YYYYMMDD.sql`（権限 0600）へ保存し、完了マーカー `PostgreSQL database dump complete` と主要テーブルの行数一致を確認する。ダンプにはプロンプトが含まれる。切り戻しは `litellm-proxy` を停止して DB を作り直し、ダンプを流し込んでから旧タグをデプロイする
 
 ## 関連ドキュメント
 
