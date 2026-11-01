@@ -43,7 +43,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 | コンテナの追加 / 削除（既存ロール内） | ロール README のコンテナ表、ルート README のアーキテクチャ図、`observability_alert_containers` の要否 |
 | defaults 変数の追加 / 変更 | ロール README の主要変数節（設計判断がある変数のみ。機械的な値は書かない） |
 | vault キーの追加 / 削除 | ロール README の「Vault 変数」一覧 |
-| イメージタグの更新のみ | **ドキュメント更新不要**（タグを README に書かない原則のため）。メジャー更新時はロール README の手順（immich が代表例）に従い、作業記録は `tasks/` に残す。例外: langfuse の ClickHouse は「バージョン非固定」を README に明記しているため、固定化する際は langfuse ロール README の該当記述も更新する |
+| イメージタグの更新のみ | **ドキュメント更新不要**（タグを README に書かない原則のため）。メジャー更新時はロール README の手順（immich が代表例）に従い、作業記録は `tasks/` に残す |
 | Make ターゲットの追加 / 変更 | ルート README のコマンド表。`tofu/Makefile` の場合はヘッダコメントと `tofu/README.md` |
 | FQDN・DNS レコードの変更 | `ansible/group_vars/local.yml`、ルート README（表・図）、coredns ロール README、必要なら `docs/dns.md`。FQDN 直書き 3 箇所（`ansible/README.md` の「既知の課題」参照）の追随も確認する |
 | バックアップ対象の変更 | backup ロール README（対象 / 対象外表）、`docs/backup-restore.md`、observability のアラート整合 |

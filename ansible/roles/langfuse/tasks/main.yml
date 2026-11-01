@@ -45,15 +45,16 @@
       mode: '0600'
   notify: LangFuse を再起動
 
+# compose の差分は次のタスクの state: present が再作成で反映するので、ハンドラは発火させない。
+# 発火させると、再作成の直後に起動時 migration の途中で全コンテナを再起動してしまう。
 - name: Docker-compose.yml を配置
   ansible.builtin.template:
       src: docker-compose.yml.j2
       dest: '{{ langfuse_install_dir }}/docker-compose.yml'
       mode: '0600'
-  notify: LangFuse を再起動
 
 - name: LangFuse コンテナを起動
   community.docker.docker_compose_v2:
       project_src: '{{ langfuse_install_dir }}'
       state: present
-      pull: always
+      pull: missing

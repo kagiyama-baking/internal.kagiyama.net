@@ -8,11 +8,11 @@ langfuse_install_dir: /opt/langfuse
 langfuse_db_data_location: /opt/langfuse/postgres
 langfuse_clickhouse_data_location: /opt/langfuse/clickhouse
 # Docker イメージ
-langfuse_web_image: langfuse/langfuse:3
-langfuse_worker_image: langfuse/langfuse-worker:3
-langfuse_db_image: postgres:17
-langfuse_clickhouse_image: clickhouse/clickhouse-server:latest
-langfuse_redis_image: redis:7-alpine
+langfuse_web_image: langfuse/langfuse:3.167.4
+langfuse_worker_image: langfuse/langfuse-worker:3.167.4
+langfuse_db_image: postgres:17.11
+langfuse_clickhouse_image: clickhouse/clickhouse-server:26.3.5.12
+langfuse_redis_image: redis:7.4.12-alpine
 
 # アプリケーション設定
 langfuse_nextauth_url: 'https://{{ langfuse_traefik_host }}'

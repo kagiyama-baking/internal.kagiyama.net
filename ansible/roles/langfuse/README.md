@@ -70,11 +70,14 @@ PostgreSQL と ClickHouse は `TZ=UTC` を明示している（LangFuse は UTC 
 | 開発機 | `make deploy-langfuse` |
 
 Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pass` 組み込み済み）。sudo パスワードは不要。
-`.env`・`docker-compose.yml`・ClickHouse 設定 3 ファイルのいずれかに差分が出るとハンドラ「LangFuse を再起動」が走り、5 コンテナすべてが `pull: always` 付きで再起動される。ClickHouse の設定変更だけでも全体が再起動される点に注意。
+`.env`・ClickHouse 設定 3 ファイルのいずれかに差分が出るとハンドラ「LangFuse を再起動」が走り、5 コンテナすべてが再起動される（イメージは更新されない）。ClickHouse の設定変更だけでも全体が再起動される点に注意。
+`docker-compose.yml` の差分（イメージタグの更新など）はハンドラを発火させず、タスク側の `state: present` が変わったコンテナだけ再作成して反映する（理由は `tasks/main.yml` のコメントを参照）。イメージの取得は `pull: missing` で、同じタグが手元にあれば取得し直さない。
+`.env` とイメージタグは同じ変更に混ぜないこと。再作成の直後にハンドラが走り、起動時の migration を中断するおそれがある。
 
 ## 運用上の注意
 
-- **ClickHouse だけがバージョン非固定**（`langfuse_clickhouse_image`、現値は `defaults/main.yml` 参照）。他ロール・他コンテナがすべてバージョン固定であるのに対しここだけ例外で、`pull: always` により再起動のたびに上流の最新版へ入れ替わり得る。再起動後に ClickHouse が起動しない場合はまずイメージの更新を疑う。既知のリスクとして記録する（タグを固定化した場合はこの記述も更新すること）
+- **イメージは 5 つともバージョンを固定する**（`defaults/main.yml` 参照）。`latest` や `3` のような可変タグに戻すと、別の変更のデプロイで Langfuse 本体や ClickHouse の版が意図せず上がり、DB の migration まで走る。`ansible/group_vars/` や `site.yml` を変更すると全ロールがデプロイされるので、関係のない変更でも起こり得る
+- **Langfuse 本体を更新する前に PostgreSQL のダンプを取る**。起動時に PostgreSQL と ClickHouse の migration が走る。PostgreSQL はバックアップ対象外で、アプリが使うプロンプトもここにある
 - **シングルノード構成には `CLICKHOUSE_CLUSTER_ENABLED=false` が必須**。デフォルトは true で、その場合 LangFuse のマイグレーションが ZooKeeper / ClickHouse Keeper を要求して起動に失敗する。`.env` から外さないこと
 - **`HOSTNAME=0.0.0.0` が必要**。既定のままではコンテナ内でループバックにしか bind されず、Traefik や healthcheck から到達できない
 - **S3 バケット 3 つ（event / media / export）は `tofu/` で管理**する。バケットと IAM ユーザーを作り直した場合は `cd tofu && make secret` でアクセスキーを取得し、vault の `langfuse_vault_s3_*` を更新してから本ロールを再デプロイする。詳細は [tofu/README.md](../../../tofu/README.md) を参照
