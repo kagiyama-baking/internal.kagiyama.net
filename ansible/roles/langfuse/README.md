@@ -1,6 +1,6 @@
 # langfuse ロール
 
-LLM のトレース・評価基盤である LangFuse v3 をデプロイするロール。
+LLM のトレース・評価基盤である LangFuse をデプロイするロール。
 
 ## 概要
 
@@ -12,8 +12,8 @@ site.yml のタグは `langfuse`。CD（`.github/workflows/deploy.yml` の `ALLO
 
 | コンテナ名 | イメージ | 内部ポート | 役割 |
 | --- | --- | --- | --- |
-| `langfuse-web` | `langfuse/langfuse` | 3000（`langfuse_web_port`） | Web UI と API。Traefik 配下で公開 |
-| `langfuse-worker` | `langfuse/langfuse-worker` | 3000（`.env` の `PORT` を共有） | イベントの非同期処理。外部公開なし |
+| `langfuse-web` | `docker.langfuse.com/langfuse/langfuse` | 3000（`langfuse_web_port`） | Web UI と API。Traefik 配下で公開 |
+| `langfuse-worker` | `docker.langfuse.com/langfuse/langfuse-worker` | 3000（`.env` の `PORT` を共有） | イベントの非同期処理。外部公開なし |
 | `langfuse-database` | `postgres` | 5432 | メタデータ（プロジェクト・ユーザー・設定等） |
 | `langfuse-clickhouse` | `clickhouse/clickhouse-server` | 8123 / 9000 | トレースの OLAP ストア |
 | `langfuse-redis` | `redis` | 6379 | キューおよびキャッシュ |
@@ -79,7 +79,9 @@ Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pas
 - **イメージは 5 つともバージョンを固定し、`pull: always` に戻さない**（`defaults/main.yml` 参照）。`latest` や `3` のような可変タグと `pull: always` を組み合わせると、別の変更のデプロイで Langfuse 本体や ClickHouse の版が意図せず上がり、DB の migration まで走る。`ansible/group_vars/` や `site.yml` を変更すると全ロールがデプロイされるので、関係のない変更でも起こり得る
 - **Redis は永続化していない**。コンテナを作り直すと処理待ちのキューとキャッシュは消え、処理中のトレースがわずかに失われることがある
 - **Langfuse 本体を更新する前に PostgreSQL のダンプを取る**。起動時に PostgreSQL と ClickHouse の migration が走り、**タグを戻すだけでは切り戻せない**（[本体の切り戻し](#本体の切り戻し)を参照）
-- **`background_migrations` の未完了の行は、`envGate` 付きなら正常**。次のメジャー版に向けた履歴の移行で、`envGate` が示す環境変数を有効にするまで実行されない。`psql` で `select name, args->>'envGate', failed_at from background_migrations where finished_at is null;` を実行し、すべての行に `envGate` があり `failed_at` が空であることを確かめる
+- **`background_migrations` の未完了の行は、`envGate` 付きなら正常**。`envGate` が示す環境変数を有効にするまで実行されない。v4 では履歴の移行（旧テーブルから `events` テーブルへの移し替え）が 4 段階目まで自動で走り、5 段階目（作業用テーブルの削除）は `LANGFUSE_BACKGROUND_MIGRATION_V4_DROP_PID_TID_SORTING_TABLES` を有効にするまで未完了で残る。`psql` で `select name, args->>'envGate', failed_at from background_migrations where finished_at is null;` を実行し、すべての行に `envGate` があり `failed_at` が空であることを確かめる
+- **v4 では旧 API が使えない**。`/api/public/traces` は 404、旧 `/api/public/ingestion` は取り込まれない。確認や検証には `/api/public/v2/observations` を使う。送信側は v4 に対応した SDK（対応する版は公式の移行ガイドを参照。LiteLLM 同梱の SDK は litellm ロールのイメージで決まる）か OTel（`/api/public/otel/v1/traces`）にする
+- **移行用の環境変数（`LANGFUSE_MIGRATION_V4_*`、`LANGFUSE_BACKGROUND_MIGRATION_V4_*`）は既定値で運用し、`.env` に書かない**。既定は新しい保存形式だけに書く設定（即時の切り替え）で、送信側（LiteLLM とアプリ）の対応を確かめたうえで、段階的な二重書き込みは使っていない。変える必要が出たら公式の移行ガイドを読み直す
 - **シングルノード構成には `CLICKHOUSE_CLUSTER_ENABLED=false` が必須**。デフォルトは true で、その場合 LangFuse のマイグレーションが ZooKeeper / ClickHouse Keeper を要求して起動に失敗する。`.env` から外さないこと
 - **`HOSTNAME=0.0.0.0` が必要**。既定のままではコンテナ内でループバックにしか bind されず、Traefik や healthcheck から到達できない
 - **S3 バケット 3 つ（event / media / export）は `tofu/` で管理**する。バケットと IAM ユーザーを作り直した場合は `cd tofu && make secret` でアクセスキーを取得し、vault の `langfuse_vault_s3_*` を更新してから本ロールを再デプロイする。詳細は [tofu/README.md](../../../tofu/README.md) を参照
@@ -96,16 +98,24 @@ Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pas
 
 旧版は、自分の知らない ClickHouse の migration が適用済みだと起動を拒否する（`no migration found for version N`）。そのため、タグを戻す前にデータを戻す。
 
-更新の前に、サーバの `/opt/langfuse` で次を実行して控えを取る。日次バックアップは最大 1 日前の内容なので、更新直前の控えはこれになる。サーバの外に持ち出さず、完了マーカーに加えて `prompts` など主要テーブルの行数も照合する。
+更新の前に、サーバの `/opt/langfuse` で次を実行して控えを取る。**タグを変える PR をマージする前に済ませる**（マージすると CD が自動でデプロイし、起動時に migration が走る）。日次バックアップは最大 1 日前の内容なので、更新直前の控えはこれになる。サーバの外に持ち出さず、`prompts` など主要テーブルの行数も照合する。各段階を `&&` でつなぎ、途中で失敗したら更新に進まない。
 
 ```bash
-# ClickHouse の現在の migration を控える（出力の version が切り戻しの <V>）
+# 0. ClickHouse の現在の migration を控える（出力の version が切り戻しの <V>）
 docker compose exec -T langfuse-clickhouse sh -c 'clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --query "select version, dirty from schema_migrations order by sequence desc limit 1"'
 
-# ダンプを取る（権限 0600、既存のファイルは上書きしない）
-(umask 077; set -o noclobber; docker compose exec -T langfuse-database pg_dump -U langfuse langfuse > ~/langfuse-pre-vX-YYYYMMDD.sql)
-tail -n 5 ~/langfuse-pre-vX-YYYYMMDD.sql | grep 'PostgreSQL database dump complete'
+# Web と Worker を止めてから控えを取る（PostgreSQL と ClickHouse の時点を揃える。Langfuse が 2 分ほど止まる）
+# ダンプは権限 0600 で既存のファイルを上書きしない。メジャー更新のときは ClickHouse のデータ領域も tar にする
+docker compose stop langfuse-web langfuse-worker \
+  && (umask 077; set -o noclobber; docker compose exec -T langfuse-database pg_dump -U langfuse langfuse > ~/langfuse-pre-vX-YYYYMMDD.sql) \
+  && tail -n 5 ~/langfuse-pre-vX-YYYYMMDD.sql | grep -q 'PostgreSQL database dump complete' \
+  && docker compose stop langfuse-clickhouse \
+  && docker run --rm --network none -v /opt/langfuse/clickhouse:/data:ro -v ~:/out alpine:3 sh -c "umask 077 && tar czf /out/langfuse-clickhouse-pre-vX-YYYYMMDD.tgz -C /data . && chown $(id -u):$(id -g) /out/langfuse-clickhouse-pre-vX-YYYYMMDD.tgz" \
+  && tar tzf ~/langfuse-clickhouse-pre-vX-YYYYMMDD.tgz > /dev/null
+docker compose start langfuse-clickhouse langfuse-web langfuse-worker
 ```
+
+控えは切り戻しの必要がなくなるまで（目安 2 週間）残し、不要になったら消す。
 
 切り戻しは同じ場所で次の順に実行する。各段階の成否を確かめてから次へ進む。
 
@@ -119,12 +129,23 @@ docker compose run --rm --no-deps -T --entrypoint sh langfuse-web -c \
 
 ```
 
-3. PostgreSQL を更新前のダンプで戻す。手順は [docs/backup-restore.md](../../../docs/backup-restore.md) の「langfuse データベースの戻し込み」と同じで、ダンプのパスを `~/langfuse-pre-vX-YYYYMMDD.sql` に読み替える（Web と Worker は手順 1 で止めてある）。
+3. PostgreSQL を更新前のダンプで戻す。手順は [docs/backup-restore.md](../../../docs/backup-restore.md) の「langfuse データベースの戻し込み」と同じで、ダンプのパスを `~/langfuse-pre-vX-YYYYMMDD.sql` に読み替える。**末尾の `docker start` は実行しない**（Web と Worker は手順 1 で止めてあり、起動はタグを戻す PR のマージで行う。止めたまま起動すると、タグを戻す前の版が migration を走らせてしまう）。
 
 最後に、更新で変えたタグだけを元の版に戻す PR をマージする（可変タグには戻さない）。CD が旧版のイメージでコンテナを作り直す。
 
 - **タグを戻す PR を先にマージしない**。旧版の Web が再起動を繰り返し、旧版の Worker が migration 後の DB で動いてしまう。手順 2 の `docker compose run` も更新後のイメージを使えなくなる
 - ダンプより後の PostgreSQL の変更（更新後に編集したプロンプトなど）は失われる。ClickHouse のトレースは残るが、down migration の内容と ClickHouse の版の差で結果が変わるので、更新のたびに手元で確かめる
+- v4 からの切り戻しは、ClickHouse を手順 0 で控えた版まで戻せば、PostgreSQL はそのままで v3 が起動する（手順 3 は PostgreSQL 側に問題があるときだけ行う）。v4 で届いたトレースは新しい `events` テーブルにしかなく、v3 からは参照できない
+
+それでも戻らないときは、更新前に控えた ClickHouse の tar とダンプから丸ごと戻す（最後の手段。更新後のデータはすべて失われる）。tar の中身を確かめてから消す。
+
+```bash
+docker compose stop langfuse-web langfuse-worker langfuse-clickhouse \
+  && docker run --rm --network none -v /opt/langfuse/clickhouse:/data -v ~:/snap:ro alpine:3 sh -c 'tar tzf /snap/langfuse-clickhouse-pre-vX-YYYYMMDD.tgz > /dev/null && find /data -mindepth 1 -delete && tar xzf /snap/langfuse-clickhouse-pre-vX-YYYYMMDD.tgz -C /data' \
+  && docker compose start langfuse-clickhouse
+```
+
+そのあと PostgreSQL をダンプで戻し（手順 3。`docker start` はしない）、タグを戻す PR をマージする。
 
 ## AWS IAM ポリシー（LangFuse S3 用）
 

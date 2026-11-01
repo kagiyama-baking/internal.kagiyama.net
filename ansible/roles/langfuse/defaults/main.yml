@@ -1,5 +1,5 @@
 ---
-# LangFuse v3 設定
+# LangFuse 設定
 
 # インストールディレクトリ
 langfuse_install_dir: /opt/langfuse
@@ -8,8 +8,8 @@ langfuse_install_dir: /opt/langfuse
 langfuse_db_data_location: /opt/langfuse/postgres
 langfuse_clickhouse_data_location: /opt/langfuse/clickhouse
 # Docker イメージ
-langfuse_web_image: langfuse/langfuse:3.225.15
-langfuse_worker_image: langfuse/langfuse-worker:3.225.15
+langfuse_web_image: docker.langfuse.com/langfuse/langfuse:4.72.0
+langfuse_worker_image: docker.langfuse.com/langfuse/langfuse-worker:4.72.0
 langfuse_db_image: postgres:17.11
 langfuse_clickhouse_image: clickhouse/clickhouse-server:26.3.62.3
 langfuse_redis_image: redis:7.4.12-alpine
