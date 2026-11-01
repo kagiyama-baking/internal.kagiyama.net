@@ -16,7 +16,7 @@ restic / autorestic によるサーバデータの日次バックアップ（→
 | バイナリ | `/opt/backup/bin/autorestic` | 同上。restic のラッパー |
 | 設定 | `/opt/backup/.autorestic.yml`（0600） | `templates/autorestic.yml.j2`。バックエンドと location の定義 |
 | スクリプト | `/opt/backup/backup.sh`（0700） | `templates/backup.sh.j2`。ダンプ → backup → forget を実行 |
-| ダンプ置き場 | `/opt/backup/dumps/immich`, `/opt/backup/dumps/app` | `pg_dump` の出力先。実行のたびに削除される |
+| ダンプ置き場 | `/opt/backup/dumps/immich`, `/opt/backup/dumps/app`, `/opt/backup/dumps/langfuse` | `pg_dump` の出力先。実行のたびに削除される |
 | cron | `autorestic-backup` | `/opt/backup/backup.sh` を毎日実行（時刻は `defaults/main.yml` 参照） |
 
 バイナリはアーキテクチャ（`aarch64` なら arm64、それ以外は amd64）を判定して取得し、既にインストール済みで同じバージョンならダウンロードをスキップする。
@@ -30,13 +30,14 @@ restic / autorestic によるサーバデータの日次バックアップ（→
 | `immich-db` | Immich の PostgreSQL | `pg_dump` でダンプしてからバックアップ |
 | `immich-library` | Immich の写真・動画（`backup_immich_library_dir`） | ディレクトリを直接バックアップ |
 | `app-db` | app ロールの PostgreSQL | `pg_dump` でダンプしてからバックアップ |
+| `langfuse-db` | langfuse ロールの PostgreSQL（プロンプト、API キー、プロジェクト設定） | `pg_dump` でダンプしてからバックアップ |
 
 ### 対象外（意図的に除外している）
 
 | 対象 | 理由 |
 | --- | --- |
 | litellm の PostgreSQL | モデル定義を含むが、消失時は Web UI から手動再登録できるため受容する |
-| langfuse の PostgreSQL・ClickHouse | LLM のトレースは消失しても許容するという判断 |
+| langfuse の ClickHouse | LLM のトレースは消失しても許容するという判断。プロンプトなどの設定は PostgreSQL 側にあり `langfuse-db` で保護する |
 | traefik の `acme.json` | Let's Encrypt から再取得できる |
 | portainer のデータ | 再設定できる |
 | grafana のデータ | ダッシュボードは Git 管理下にあり、アラート履歴等は消失を許容する |
@@ -49,7 +50,7 @@ restic / autorestic によるサーバデータの日次バックアップ（→
 | `backup_retention_daily` | `forget --prune` で残す日次世代数。全 location 共通 |
 | `backup_cron_hour` / `backup_cron_minute` | cron の実行時刻 |
 | `backup_dump_dir` | ダンプの一時置き場。バックアップ対象パスでもある |
-| `backup_immich_db_*` / `backup_app_db_*` | `pg_dump` 実行時のコンテナ名・DB ユーザー・DB 名 |
+| `backup_immich_db_*` / `backup_app_db_*` / `backup_langfuse_db_*` | `pg_dump` 実行時のコンテナ名・DB ユーザー・DB 名 |
 | `backup_aws_region` | S3 バックエンドのリージョン |
 
 具体的な値は `defaults/main.yml` を参照。
@@ -84,11 +85,12 @@ Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pas
 ## 運用上の注意
 
 - **restic パスワードを失うと全バックアップが復元不能になる**。`backup_vault_restic_password` は暗号化の鍵そのものであり、S3 上のデータは restic 以外の手段では読めない。vault が失われた場合に備え、vault とは別の場所（パスワードマネージャ等）にも保管しておくこと
+- **ダンプが 1 つでも失敗すると、その回は全 location がスキップされる**。`backup.sh` は `set -e` で止まり、`Backup failed` が通知される。翌日の実行で回復するが、通知が来たら当日中に原因を見ること
 - **ダンプファイルは毎回削除される**。`backup.sh` は EXIT trap で `/opt/backup/dumps/` 配下のダンプを削除するため、実行後にホスト上へダンプは残らない。Immich のアップグレード前など手元にダンプを残したい場合は、`docker exec` で別名のファイルへ手動取得すること
 - **syslog タグ `autorestic-backup` を変更しない**。Grafana のバックアップ監視アラートはこのタグと、`backup.sh` が出力する `Backup failed` / `Backup completed successfully` という文字列に依存している。タグやメッセージを変えると、失敗検知と「一定時間バックアップが成功していない」検知の両方が無言で壊れる
 - **backup 用の S3 バケットと IAM ユーザーは tofu 管理外**（手動作成）。`tofu/` が管理しているのは langfuse 用のバケットのみ。バケット名も vault 変数のため、Git 上には現れない
 - **バイナリは GitHub Releases から取得し SHA256 で検証している**。バージョンを上げる際は `defaults/main.yml` の値だけを変更すればよい（チェックサムは同リリースの `SHA256SUMS` を参照するため追随不要）
-- **バックアップ対象は 3 つだけ**という前提を崩さないこと。新しいサービスを追加したときは、上記「対象外」の表に理由付きで追記するか、location を追加するかを明示的に判断する
+- **バックアップ対象は 4 つだけ**という前提を崩さないこと。新しいサービスを追加したときは、上記「対象外」の表に理由付きで追記するか、location を追加するかを明示的に判断する
 - **リストアの手順は [docs/backup-restore.md](../../../docs/backup-restore.md) を参照**。restic は空でないディレクトリへの復元を拒否するため、location ごとに一時ディレクトリへ復元してから本番パスへコピーする
 
 ## AWS IAM ポリシー（S3 バックアップ用）
@@ -126,4 +128,5 @@ backup ロールで使用する IAM ユーザーには、対象バケットへ�
 - [docs/backup-restore.md](../../../docs/backup-restore.md) — リストア手順
 - [immich ロール](../immich/README.md) — バックアップ対象（DB・ライブラリ）
 - [app ロール](../app/README.md) — バックアップ対象（DB）
+- [langfuse ロール](../langfuse/README.md) — バックアップ対象（PostgreSQL のみ）
 - [observability ロール](../observability/README.md) — バックアップ失敗の監視アラート

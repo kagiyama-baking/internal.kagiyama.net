@@ -27,3 +27,8 @@ backup_immich_library_dir: /opt/immich/library
 backup_app_db_container: app-database
 backup_app_db_user: kawashiro
 backup_app_db_name: kawashiro
+
+# langfuse 関連（PostgreSQL。プロンプトと設定を持つ。ClickHouse のトレースは対象外）
+backup_langfuse_db_container: langfuse-database
+backup_langfuse_db_user: langfuse
+backup_langfuse_db_name: langfuse

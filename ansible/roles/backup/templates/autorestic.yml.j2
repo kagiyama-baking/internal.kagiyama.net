@@ -31,3 +31,10 @@ locations:
     options:
       forget:
         keep-daily: "{{ backup_retention_daily }}"
+
+  langfuse-db:
+    from: "{{ backup_dump_dir }}/langfuse"
+    to: s3
+    options:
+      forget:
+        keep-daily: "{{ backup_retention_daily }}"

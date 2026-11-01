@@ -149,7 +149,7 @@ graph LR
 > **Note:** ポート番号はコンテナ内部ポート。Portainer(:9443 HTTPS。図中の :9000 は Traefik のルーティング先)、
 > Immich(:2283)、Grafana(:3000) はホストの `127.0.0.1` にもバインドされるが、通常は Traefik 経由でアクセスする。
 > Django API・Celery・各 DB はホストに公開されない。全コンテナの DNS 上流は CoreDNS に固定されている（[docs/dns.md](docs/dns.md)）。
-> autorestic はコンテナではなくホスト上の cron で動作し、Immich の DB・ライブラリと app の DB を S3 へバックアップする。
+> autorestic はコンテナではなくホスト上の cron で動作し、Immich の DB・ライブラリ、app の DB、Langfuse の DB（PostgreSQL）を S3 へバックアップする。
 
 ## リポジトリ構成
 
@@ -212,7 +212,7 @@ make deploy-test SSH_HOST=my-server # 接続先を一時的に変更する例
 
 ## バックアップ
 
-autorestic（restic のラッパー）で、Immich の DB・写真ライブラリと kawashiro-server の DB を毎日自動で AWS S3 へ暗号化バックアップしています。
+autorestic（restic のラッパー）で、Immich の DB・写真ライブラリ、kawashiro-server の DB、Langfuse の DB（PostgreSQL）を毎日自動で AWS S3 へ暗号化バックアップしています。
 
 - 仕組み・手動実行・**リストア手順**: [docs/backup-restore.md](docs/backup-restore.md)
 - 対象・対象外の一覧と理由: [backup ロール README](ansible/roles/backup/README.md)
