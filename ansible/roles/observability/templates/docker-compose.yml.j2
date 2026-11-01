@@ -145,10 +145,10 @@ services:
     image: "{{ observability_cadvisor_image }}"
     container_name: cadvisor
     restart: unless-stopped
-    # 外すと OOM Kill でメトリクスを取得できなくなる（理由はロールの README の「運用上の注意」）
+    # 値の理由と更新時の手順はロールの README の「運用上の注意」を参照
     command:
       - --docker_only=true
-      - --disable_metrics=disk
+      - --disable_metrics=advtcp,cpu_topology,cpuset,disk,hugetlb,memory_numa,process,referenced_memory,resctrl,sched,tcp,udp
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
