@@ -77,7 +77,8 @@ Prometheus のスクレイプ対象は自身・`node-exporter`・`cadvisor` の 
 | 開発機 | `make deploy-observability` |
 
 Vault パスワードが必要（`--ask-vault-pass`）。sudo パスワードは不要。
-上表の設定ファイルとダッシュボード JSON はいずれもハンドラ `Observability を再起動` を notify するため、1 ファイルでも変化すると Compose プロジェクト全体が `state: restarted` で再起動する。
+上表の設定ファイル（`docker-compose.yml` を除く）とダッシュボード JSON はいずれもハンドラ `Observability を再起動` を notify するため、1 ファイルでも変化すると Compose プロジェクト全体が `state: restarted` で再起動する。
+`docker-compose.yml` の差分（イメージタグの更新など）はハンドラを発火させず、タスク側の `state: present` が変わったコンテナだけ再作成して反映する。
 
 ## 運用上の注意
 
