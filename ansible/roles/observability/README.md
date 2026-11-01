@@ -88,7 +88,8 @@ Vault パスワードが必要（`--ask-vault-pass`）。sudo パスワードは
 - **コンテナダウン検知に `absent_over_time` を使うのは必然**。コンテナが停止すると cAdvisor は `container_last_seen` の報告自体を止めるため、`time() - container_last_seen` のような閾値比較は空の結果を返し検知できない。メトリクスの「不在」で判定する必要がある
 - **cAdvisor が止まっているあいだは、コンテナの停止を検知できない**。不在の判定はコンテナの停止と cAdvisor の停止を区別できないので、cAdvisor の取得状況（`up`）を掛けて後者では発火させず、「cAdvisor 停止」の 1 件で通知する。cAdvisor の停止中に止まったコンテナは、最後に観測されてから 10 分経ち、かつ cAdvisor の復帰から 2 分経った時点で通知される
 - **「cAdvisor 停止」は 10 分間の平均で判定する**。短い再起動では発火せず、OOM を繰り返す場合も短い復帰では解消しない。これで通知が発火と解消を往復しにくくなる
-- **cAdvisor の起動オプションを外さない**。`--disable_metrics=disk` を外すと、containerd snapshotter の環境ではディスク使用量の収集が全コンテナの rootfs を走査し続け、走査のキャッシュでメモリ上限に達して OOM Kill を繰り返し、メトリクスを取得できなくなる。`container_fs_usage_bytes` などの容量系は出なくなるが、ダッシュボードとアラートでは使っていない。この値は既定の無効リストを置き換えるので、TCP やプロセス系のメトリクスは有効になる。`--docker_only=true` は、報告を Docker コンテナとホスト全体に絞って系列数を抑える
+- **cAdvisor の起動オプションを外さない**。`--disable_metrics` から `disk` を外すと、containerd snapshotter の環境ではディスク使用量の収集が全コンテナの rootfs を走査し続け、走査のキャッシュでメモリ上限に達して OOM Kill を繰り返し、メトリクスを取得できなくなる。`container_fs_usage_bytes` などの容量系は出なくなるが、ダッシュボードとアラートでは使っていない。`--docker_only=true` は、報告を Docker コンテナとホスト全体に絞って系列数を抑える
+- **`--disable_metrics` は既定のリストに `disk` を足した形で指定する**。この値は既定の無効リストを置き換えるので、`disk` だけを指定するとプロセス系のメトリクスまで有効になる。すると cAdvisor の読み取りが AppArmor に拒否され続け（`operation="ptrace" comm="cadvisor"`）、カーネルログと cAdvisor のログ（`Cannot read smaps`）が埋まる。cAdvisor を更新するときは `cadvisor --help` で既定のリストを確かめ、差があれば `command` を既定のリストと `disk` に合わせる
 - **PromQL 内で比較演算（`> 90` 等）をしない**。比較すると結果が元の値ではなく `1` になり、Grafana の Reduce + Threshold と組み合わさって「値が存在すれば常に発火」になる。PromQL は素の値を返し、閾値判定は Grafana の Threshold 側で行う
 - **データソースの UID 変更は破壊的**。既存の Grafana DB に旧 UID が残った状態で `uid` を変更・追加すると Grafana が起動しなくなる。`datasources.yml.j2` の `deleteDatasources` で旧データソースを削除してから再作成する構成を崩さないこと
 - **アラートルールの `folder` 名は変更しない**。`folder: ""` は起動エラーになるうえ、フォルダ名を変えると旧フォルダにルールが残って重複する（自動クリーンアップされない）。重複が生じた場合の解消は Grafana ボリュームのリセットになる
