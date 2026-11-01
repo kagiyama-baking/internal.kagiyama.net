@@ -46,7 +46,8 @@ Prometheus のスクレイプ対象は自身・`node-exporter`・`cadvisor` の 
 
 | ルール | データソース | 判定 | severity |
 | --- | --- | --- | --- |
-| コンテナダウン（`observability_alert_containers` の要素ごとに 1 本、現在 11 本） | Prometheus | `absent_over_time(container_last_seen{name="..."}[10m])` が 1 件でも返れば発火 | critical |
+| コンテナダウン（`observability_alert_containers` の要素ごとに 1 本） | Prometheus | `absent_over_time(container_last_seen{name="..."}[10m])` に直近 2 分の cAdvisor の取得状況を掛けた値が 0 より大きければ発火 | critical |
+| cAdvisor 停止 | Prometheus | 直近 10 分の `up{job="cadvisor"}` の平均が 0.5 未満、またはデータがなければ発火 | critical |
 | バックアップ失敗 | Loki | syslog に autorestic の `Backup failed` が出現したら即発火 | critical |
 | バックアップ未実行 | Loki | `observability_alert_backup_missing_hours` 時間内に成功ログが無ければ発火 | warning |
 | ディスク使用率が 90% 超過 | Prometheus | 仮想ファイルシステムを除く最大使用率が 90% 超で 5 分継続 | warning |
@@ -83,9 +84,11 @@ Vault パスワードが必要（`--ask-vault-pass`）。sudo パスワードは
 ## 運用上の注意
 
 - **新しいサービスを追加したら `observability_alert_containers` に必ず追加する**。ここへの追加を忘れると、そのコンテナが停止しても誰も気付けない。現在の対象は immich 系 4 つ、`django-api`、`frontend`、`traefik`、`portainer`、`coredns`、`langfuse-web`、`langfuse-worker` の 11 件
-- 上記の裏返しとして、**稼働中でも監視対象外のコンテナが多数ある**。`celery-worker` / `celery-beat` / `app-database` / `redis` / `litellm-proxy` / `litellm-database` / `langfuse-database` / `langfuse-clickhouse` / `langfuse-redis`、および observability スタック自身（`grafana` / `prometheus` / `loki` / `promtail` / `cadvisor` / `node-exporter`）が該当する。これらが意図的な除外なのか単に未追加なのかを示す記録は残っていない。特に Grafana 自身が落ちた場合はアラートの発報経路ごと失われる点に注意する
+- 上記の裏返しとして、**稼働中でも監視対象外のコンテナが多数ある**。`celery-worker` / `celery-beat` / `app-database` / `redis` / `litellm-proxy` / `litellm-database` / `langfuse-database` / `langfuse-clickhouse` / `langfuse-redis`、および observability スタック自身（`grafana` / `prometheus` / `loki` / `promtail` / `node-exporter`）が該当する。これらが意図的な除外なのか単に未追加なのかを示す記録は残っていない。特に Grafana 自身が落ちた場合はアラートの発報経路ごと失われる点に注意する
 - **コンテナダウン検知に `absent_over_time` を使うのは必然**。コンテナが停止すると cAdvisor は `container_last_seen` の報告自体を止めるため、`time() - container_last_seen` のような閾値比較は空の結果を返し検知できない。メトリクスの「不在」で判定する必要がある
-- **cAdvisor の起動オプションを外さない**。`--disable_metrics=disk` を外すと、containerd snapshotter の環境ではディスク使用量の収集が全コンテナの rootfs を走査し続け、走査のキャッシュでメモリ上限に達して OOM Kill を繰り返す。前項の判定方式のため、メトリクスを取得できない状態が続くと、監視対象のコンテナがすべて停止として通知される（実際には止まっていない）。`container_fs_usage_bytes` などの容量系は出なくなるが、ダッシュボードとアラートでは使っていない。この値は既定の無効リストを置き換えるので、TCP やプロセス系のメトリクスは有効になる。`--docker_only=true` は、報告を Docker コンテナとホスト全体に絞って系列数を抑える
+- **cAdvisor が止まっているあいだは、コンテナの停止を検知できない**。不在の判定はコンテナの停止と cAdvisor の停止を区別できないので、cAdvisor の取得状況（`up`）を掛けて後者では発火させず、「cAdvisor 停止」の 1 件で通知する。cAdvisor の停止中に止まったコンテナは、最後に観測されてから 10 分経ち、かつ cAdvisor の復帰から 2 分経った時点で通知される
+- **「cAdvisor 停止」は 10 分間の平均で判定する**。短い再起動では発火せず、OOM を繰り返す場合も短い復帰では解消しない。これで通知が発火と解消を往復しにくくなる
+- **cAdvisor の起動オプションを外さない**。`--disable_metrics=disk` を外すと、containerd snapshotter の環境ではディスク使用量の収集が全コンテナの rootfs を走査し続け、走査のキャッシュでメモリ上限に達して OOM Kill を繰り返し、メトリクスを取得できなくなる。`container_fs_usage_bytes` などの容量系は出なくなるが、ダッシュボードとアラートでは使っていない。この値は既定の無効リストを置き換えるので、TCP やプロセス系のメトリクスは有効になる。`--docker_only=true` は、報告を Docker コンテナとホスト全体に絞って系列数を抑える
 - **PromQL 内で比較演算（`> 90` 等）をしない**。比較すると結果が元の値ではなく `1` になり、Grafana の Reduce + Threshold と組み合わさって「値が存在すれば常に発火」になる。PromQL は素の値を返し、閾値判定は Grafana の Threshold 側で行う
 - **データソースの UID 変更は破壊的**。既存の Grafana DB に旧 UID が残った状態で `uid` を変更・追加すると Grafana が起動しなくなる。`datasources.yml.j2` の `deleteDatasources` で旧データソースを削除してから再作成する構成を崩さないこと
 - **アラートルールの `folder` 名は変更しない**。`folder: ""` は起動エラーになるうえ、フォルダ名を変えると旧フォルダにルールが残って重複する（自動クリーンアップされない）。重複が生じた場合の解消は Grafana ボリュームのリセットになる
