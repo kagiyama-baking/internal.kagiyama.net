@@ -86,6 +86,11 @@ Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pas
 - **PostgreSQL と ClickHouse はバックアップ対象外**。LLM のトレースは消失しても許容するという判断であり、backup ロールの location にも含めていない。トレース以外の設定（プロジェクト・API キー・アプリが使うプロンプト等）も同じ DB にあるため、消失時は再作成が必要になる点を承知しておくこと
 - **ClickHouse のメモリチューニングは OOM 対策の結果**。`templates/clickhouse/` 配下の設定は、既定値のままでは割り当てメモリを超えて OOM Kill されたため導入した。`langfuse_clickhouse_mem_limit` を下げる場合は `max_server_memory_usage` も併せて見直すこと
 - **システムテーブルの TTL を外さない**。`query_log` などは既定で無期限に増え続け、`/opt/langfuse/clickhouse` のディスクを食い潰す
+- **TTL を足しても既存のデータは消えない**。定義が変わると、ClickHouse は起動時に既存のテーブルを `<テーブル>_N` に改名して作り直す。もともと TTL がなかったテーブルは改名後も期限なしで残るので、中身が不要なら `/opt/langfuse` で次のように消す
+
+    ```bash
+    docker compose exec -T langfuse-clickhouse sh -c 'clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --query "DROP TABLE system.<テーブル>_N SYNC"'
+    ```
 
 ### 本体の切り戻し
 

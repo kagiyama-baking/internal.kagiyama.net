@@ -19,4 +19,7 @@
     <asynchronous_metric_log>
         <ttl>event_date + INTERVAL {{ langfuse_clickhouse_system_log_ttl_days }} DAY</ttl>
     </asynchronous_metric_log>
+    <text_log>
+        <ttl>event_date + INTERVAL {{ langfuse_clickhouse_system_log_ttl_days }} DAY</ttl>
+    </text_log>
 </clickhouse>
