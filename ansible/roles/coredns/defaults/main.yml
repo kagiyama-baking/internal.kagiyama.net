@@ -3,7 +3,7 @@
 coredns_install_dir: /opt/coredns
 
 # Docker イメージ
-coredns_image: coredns/coredns:1.12.0
+coredns_image: coredns/coredns:1.15.0
 
 # バインドアドレス（内部ネットワーク専用の場合は特定のIPを指定）
 coredns_bind_address: '0.0.0.0'

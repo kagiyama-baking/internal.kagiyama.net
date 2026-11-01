@@ -9,7 +9,7 @@
 |---|---|---|
 | LAN 内のクライアント | CoreDNS（サーバの `:53`） | ルータ/端末の DNS 設定で向ける |
 | 各コンテナ | Docker 埋め込み DNS `127.0.0.11` | 上流 = `/etc/docker/daemon.json` の `dns`（= CoreDNS） |
-| ホスト自身 | systemd-resolved | `/etc/resolv.conf` → `/run/systemd/resolve/resolv.conf`（DHCP 等の上流） |
+| ホスト自身 | systemd-resolved | `/etc/resolv.conf` → `/run/systemd/resolve/resolv.conf`。上流は DHCP 等の設定で決まり、現在は CoreDNS（`resolvectl status` で確認） |
 
 CoreDNS は hosts プラグインで内部レコードに応答し、それ以外は forward で公開 DNS へ転送する（Corefile は `hosts` + `fallthrough` + `forward`。上流・キャッシュ TTL は `ansible/roles/coredns/defaults/main.yml` 参照）。
 

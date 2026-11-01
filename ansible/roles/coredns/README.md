@@ -60,11 +60,12 @@ FQDN を追加・変更するだけなら vault の復号は不要。
 | 開発機 | `make deploy-coredns` |
 
 Vault パスワード（`--ask-vault-pass`）が必要。sudo パスワードは不要。
-`docker-compose.yml`・`Corefile`・`custom.hosts` のいずれかが変化すると、ハンドラで CoreDNS コンテナが再起動する。
+`Corefile`・`custom.hosts` のいずれかが変化すると、ハンドラで CoreDNS コンテナが再起動する。`docker-compose.yml` の差分（イメージタグの更新など）はハンドラを発火させず、タスク側の `state: present` が再作成して反映する（理由は `tasks/main.yml` のコメントを参照）。新しいイメージの取得は古いコンテナを止める前に行われる。
 
 ## 運用上の注意
 
 - **CoreDNS の停止はホストと全コンテナの名前解決障害に直結する**。`/etc/docker/daemon.json` の DNS 上流がこのコンテナを指しているため、停止中は内部名も外部名も引けなくなる。安易にコンテナを止めない、`restart: unless-stopped` を外さないこと
+- **イメージの更新後に CoreDNS が動かないときは、IP でサーバに入って compose のタグを戻す**。名前解決が止まると名前での SSH やイメージの取得もできないことがある。サーバの IP（vault の `coredns_vault_ip_internal`）で SSH し、`/opt/coredns/docker-compose.yml` のタグを前の版に戻して、`/opt/coredns` で `docker compose up -d` を実行する。前の版のイメージがサーバにあればネットワークは要らないので、更新が落ち着くまで古いイメージを消さない。そのあと PR で revert する（マージまで `make coredns` を実行しない。新しいタグが再適用される）
 - レコードを増やすときは上表の 3 層すべてを更新する。どれか 1 層だけを変更すると未定義変数でテンプレート展開に失敗する
 - 内部ゾーンに権威応答（`aa` フラグ）を返すことが、ACME への唯一の干渉点。`internal.kagiyama.net` は hosts プラグインが `aa` 付きで応答するため Traefik（lego）の権威 NS 自動検出を妨げるが、`_acme-challenge.*` は hosts に無く fallthrough して forward へ流れるため DNS-01 チャレンジ自体には干渉しない。対処は traefik ロールの `traefik_acme_resolvers` 明示指定で完結している。詳細は [docs/dns.md](../../../docs/dns.md)
 - 干渉しているかどうかは `dig` の flags に `aa` が立つかで判別する。ゾーン単位ではなくレコード単位で確認すること
