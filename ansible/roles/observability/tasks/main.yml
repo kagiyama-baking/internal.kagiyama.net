@@ -34,12 +34,13 @@
       mode: '0600'
   notify: Observability を再起動
 
+# compose の差分は後続のタスクの state: present が、変わったコンテナだけ再作成して反映する。
+# ハンドラを発火させると、1 つのイメージの更新でも全コンテナが再起動してしまう。
 - name: Docker Compose 設定を配置
   ansible.builtin.template:
       src: docker-compose.yml.j2
       dest: '{{ observability_install_dir }}/docker-compose.yml'
       mode: '0600'
-  notify: Observability を再起動
 
 - name: Prometheus 設定を配置
   ansible.builtin.template:
