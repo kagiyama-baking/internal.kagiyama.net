@@ -122,7 +122,7 @@ make backup
 
 ## 9. データのリストア（復旧時のみ）
 
-[docs/backup-restore.md](backup-restore.md) の手順で `immich-db` / `immich-library` / `app-db` を復元する。
+[docs/backup-restore.md](backup-restore.md) の手順で `immich-db` / `immich-library` / `app-db` / `langfuse-db` を復元する。
 
 バックアップ対象外のデータは手動で再設定する（[backup ロール README](../ansible/roles/backup/README.md) の対象外一覧を参照）:
 

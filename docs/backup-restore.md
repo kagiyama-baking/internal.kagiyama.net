@@ -18,8 +18,8 @@
 
 cron が `/opt/backup/backup.sh` を実行する。流れ:
 
-1. `pg_dump` で immich / app の PostgreSQL をダンプし `/opt/backup/dumps/{immich,app}/` に出力
-2. `autorestic backup -a` で全 location（`immich-db` / `immich-library` / `app-db`）を S3 へバックアップ
+1. `pg_dump` で immich / app / langfuse の PostgreSQL をダンプし `/opt/backup/dumps/{immich,app,langfuse}/` に出力
+2. `autorestic backup -a` で全 location（`immich-db` / `immich-library` / `app-db` / `langfuse-db`）を S3 へバックアップ
 3. `autorestic forget -a --prune` で保持世代を超えたスナップショットを削除
 4. **EXIT trap がダンプファイルを削除する（成功・失敗を問わず）**
 
@@ -57,6 +57,7 @@ cd /opt/backup
 PATH=/opt/backup/bin:$PATH autorestic restore -l app-db -c .autorestic.yml --to /tmp/restore-app
 PATH=/opt/backup/bin:$PATH autorestic restore -l immich-db -c .autorestic.yml --to /tmp/restore-immich-db
 PATH=/opt/backup/bin:$PATH autorestic restore -l immich-library -c .autorestic.yml --to /tmp/restore-immich-lib
+PATH=/opt/backup/bin:$PATH autorestic restore -l langfuse-db -c .autorestic.yml --to /tmp/restore-langfuse-db
 ```
 
 復元先にはバックアップ時の絶対パス構造がそのまま展開される。
@@ -65,6 +66,7 @@ PATH=/opt/backup/bin:$PATH autorestic restore -l immich-library -c .autorestic.y
 ls /tmp/restore-app/opt/backup/dumps/app/kawashiro.sql
 ls /tmp/restore-immich-db/opt/backup/dumps/immich/immich.sql
 ls /tmp/restore-immich-lib/opt/immich/library/
+ls /tmp/restore-langfuse-db/opt/backup/dumps/langfuse/langfuse.sql
 ```
 
 ダンプは末尾の完了マーカー（`PostgreSQL database dump complete`）まで確認する。
@@ -73,30 +75,28 @@ ls /tmp/restore-immich-lib/opt/immich/library/
 
 コンテナ名・DB ユーザー名は `ansible/roles/backup/defaults/main.yml` の値。
 
+各段階を `&&` でつなぎ、途中で失敗したら次へ進まない（失敗したまま再開すると、空の DB で起動してしまう）。
+
 ```bash
-# DB に書き込むコンテナを停止
-docker stop django-api celery-worker celery-beat
-
-# DB を作り直してダンプを流し込む
-docker exec app-database psql -U kawashiro -d postgres -c 'DROP DATABASE IF EXISTS kawashiro WITH (FORCE);'
-docker exec app-database psql -U kawashiro -d postgres -c 'CREATE DATABASE kawashiro OWNER kawashiro;'
-docker exec -i app-database psql -U kawashiro -d kawashiro < /tmp/restore-app/opt/backup/dumps/app/kawashiro.sql
-
-# 再開して動作確認
-docker start django-api celery-worker celery-beat
+# ダンプの完了マーカーを確かめてから、DB に書き込むコンテナを停止し、DB を作り直してダンプを流し込み、再開する
+tail -n 5 /tmp/restore-app/opt/backup/dumps/app/kawashiro.sql | grep -q 'PostgreSQL database dump complete' \
+  && docker stop django-api celery-worker celery-beat \
+  && docker exec app-database psql -U kawashiro -d postgres -c 'DROP DATABASE IF EXISTS kawashiro WITH (FORCE);' \
+  && docker exec app-database psql -U kawashiro -d postgres -c 'CREATE DATABASE kawashiro OWNER kawashiro;' \
+  && docker exec -i app-database psql -U kawashiro -d kawashiro -v ON_ERROR_STOP=1 < /tmp/restore-app/opt/backup/dumps/app/kawashiro.sql \
+  && docker start django-api celery-worker celery-beat
 docker ps --filter name=django-api    # healthy になること
 ```
 
 ### 3. immich データベースの戻し込み
 
 ```bash
-docker stop immich-server immich-machine-learning
-
-docker exec immich-database psql -U postgres -d postgres -c 'DROP DATABASE IF EXISTS immich WITH (FORCE);'
-docker exec immich-database psql -U postgres -d postgres -c 'CREATE DATABASE immich;'
-docker exec -i immich-database psql -U postgres -d immich < /tmp/restore-immich-db/opt/backup/dumps/immich/immich.sql
-
-docker start immich-server immich-machine-learning
+tail -n 5 /tmp/restore-immich-db/opt/backup/dumps/immich/immich.sql | grep -q 'PostgreSQL database dump complete' \
+  && docker stop immich-server immich-machine-learning \
+  && docker exec immich-database psql -U postgres -d postgres -c 'DROP DATABASE IF EXISTS immich WITH (FORCE);' \
+  && docker exec immich-database psql -U postgres -d postgres -c 'CREATE DATABASE immich;' \
+  && docker exec -i immich-database psql -U postgres -d immich -v ON_ERROR_STOP=1 < /tmp/restore-immich-db/opt/backup/dumps/immich/immich.sql \
+  && docker start immich-server immich-machine-learning
 ```
 
 > **Note:** immich のダンプには拡張（ベクトル検索）の定義が含まれるため、必ず現行の immich-database
@@ -110,10 +110,27 @@ sudo rsync -a /tmp/restore-immich-lib/opt/immich/library/ /opt/immich/library/
 docker start immich-server
 ```
 
-### 5. 事後確認
+### 5. langfuse データベースの戻し込み
+
+戻るのはトレース以外の設定（プロジェクト・API キー・プロンプト等）。ClickHouse のトレースは対象外で、PostgreSQL 側の参照が消えた分は UI に出ないことがある。手元に取った別名のダンプ（本体の更新前の控えなど）を戻すときも、パスを読み替えて同じ手順を使う。
+
+```bash
+tail -n 5 /tmp/restore-langfuse-db/opt/backup/dumps/langfuse/langfuse.sql | grep -q 'PostgreSQL database dump complete' \
+  && docker stop langfuse-web langfuse-worker \
+  && docker exec langfuse-database psql -U langfuse -d postgres -c 'DROP DATABASE IF EXISTS langfuse WITH (FORCE);' \
+  && docker exec langfuse-database psql -U langfuse -d postgres -c 'CREATE DATABASE langfuse OWNER langfuse;' \
+  && docker exec -i langfuse-database psql -U langfuse -d langfuse -v ON_ERROR_STOP=1 < /tmp/restore-langfuse-db/opt/backup/dumps/langfuse/langfuse.sql \
+  && docker start langfuse-web langfuse-worker
+docker ps --filter name=langfuse-web    # healthy になること
+```
+
+> **Note:** ダンプと Langfuse 本体の版を揃えること。古いダンプを新しい版に流し込むと、起動時の migration が再度走る。本体の更新と同時の切り戻しは [langfuse ロール README](../ansible/roles/langfuse/README.md) の手順に従う。
+
+### 6. 事後確認
 
 - Immich にログインし写真が表示されること
 - kawashiro-server（`internal.kagiyama.net`）が応答すること
+- Langfuse にログインしプロンプトが表示されること
 - 一時ディレクトリ（`/tmp/restore-*`）を削除
 
 ## restic パスワードの管理

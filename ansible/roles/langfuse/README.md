@@ -83,7 +83,7 @@ Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pas
 - **シングルノード構成には `CLICKHOUSE_CLUSTER_ENABLED=false` が必須**。デフォルトは true で、その場合 LangFuse のマイグレーションが ZooKeeper / ClickHouse Keeper を要求して起動に失敗する。`.env` から外さないこと
 - **`HOSTNAME=0.0.0.0` が必要**。既定のままではコンテナ内でループバックにしか bind されず、Traefik や healthcheck から到達できない
 - **S3 バケット 3 つ（event / media / export）は `tofu/` で管理**する。バケットと IAM ユーザーを作り直した場合は `cd tofu && make secret` でアクセスキーを取得し、vault の `langfuse_vault_s3_*` を更新してから本ロールを再デプロイする。詳細は [tofu/README.md](../../../tofu/README.md) を参照
-- **PostgreSQL と ClickHouse はバックアップ対象外**。LLM のトレースは消失しても許容するという判断であり、backup ロールの location にも含めていない。トレース以外の設定（プロジェクト・API キー・アプリが使うプロンプト等）も同じ DB にあるため、消失時は再作成が必要になる点を承知しておくこと
+- **PostgreSQL は backup ロールの日次バックアップの対象（`langfuse-db`）、ClickHouse は対象外**。理由は [backup ロール README](../backup/README.md) の対象外の表、戻し込みの手順は [docs/backup-restore.md](../../../docs/backup-restore.md) を参照
 - **ClickHouse のメモリチューニングは OOM 対策の結果**。`templates/clickhouse/` 配下の設定は、既定値のままでは割り当てメモリを超えて OOM Kill されたため導入した。`langfuse_clickhouse_mem_limit` を下げる場合は `max_server_memory_usage` も併せて見直すこと
 - **システムテーブルの TTL を外さない**。`query_log` などは既定で無期限に増え続け、`/opt/langfuse/clickhouse` のディスクを食い潰す
 - **TTL を足しても既存のデータは消えない**。定義が変わると、ClickHouse は起動時に既存のテーブルを `<テーブル>_N` に改名して作り直す。もともと TTL がなかったテーブルは改名後も期限なしで残るので、中身が不要なら `/opt/langfuse` で次のように消す
@@ -96,7 +96,7 @@ Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pas
 
 旧版は、自分の知らない ClickHouse の migration が適用済みだと起動を拒否する（`no migration found for version N`）。そのため、タグを戻す前にデータを戻す。
 
-更新の前に、サーバの `/opt/langfuse` で次を実行して控えを取る。このダンプが PostgreSQL の唯一の控えになるので、サーバの外に持ち出さず、完了マーカーに加えて `prompts` など主要テーブルの行数も照合する。
+更新の前に、サーバの `/opt/langfuse` で次を実行して控えを取る。日次バックアップは最大 1 日前の内容なので、更新直前の控えはこれになる。サーバの外に持ち出さず、完了マーカーに加えて `prompts` など主要テーブルの行数も照合する。
 
 ```bash
 # ClickHouse の現在の migration を控える（出力の version が切り戻しの <V>）
@@ -117,11 +117,9 @@ docker compose stop langfuse-web langfuse-worker
 docker compose run --rm --no-deps -T --entrypoint sh langfuse-web -c \
   'cd packages/shared && migrate -source file://clickhouse/migrations/unclustered -database "${CLICKHOUSE_MIGRATION_URL}?username=${CLICKHOUSE_USER}&password=${CLICKHOUSE_PASSWORD}&database=${CLICKHOUSE_DB:-default}&x-multi-statement=true&x-migrations-table-engine=MergeTree" goto <V>'
 
-# 3. ダンプの完了マーカーを確かめてから、PostgreSQL を作り直して流し込む
-tail -n 5 ~/langfuse-pre-vX-YYYYMMDD.sql | grep 'PostgreSQL database dump complete'
-docker compose exec -T langfuse-database psql -U langfuse -d postgres -v ON_ERROR_STOP=1 -c 'DROP DATABASE langfuse' -c 'CREATE DATABASE langfuse'
-docker compose exec -T langfuse-database psql -U langfuse -d langfuse -v ON_ERROR_STOP=1 -q < ~/langfuse-pre-vX-YYYYMMDD.sql
 ```
+
+3. PostgreSQL を更新前のダンプで戻す。手順は [docs/backup-restore.md](../../../docs/backup-restore.md) の「langfuse データベースの戻し込み」と同じで、ダンプのパスを `~/langfuse-pre-vX-YYYYMMDD.sql` に読み替える（Web と Worker は手順 1 で止めてある）。
 
 最後に、更新で変えたタグだけを元の版に戻す PR をマージする（可変タグには戻さない）。CD が旧版のイメージでコンテナを作り直す。
 

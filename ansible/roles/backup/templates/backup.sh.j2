@@ -1,5 +1,7 @@
 #!/bin/bash
 set -euo pipefail
+# ダンプには認証情報のハッシュが含まれるので、他のユーザーから読めないようにする
+umask 077
 
 LOG_TAG="autorestic-backup"
 BACKUP_DIR="{{ backup_base_dir }}"
@@ -18,6 +20,7 @@ cleanup() {
     log_info "Cleaning up dump files"
     rm -f "{{ backup_dump_dir }}/immich/immich.sql"
     rm -f "{{ backup_dump_dir }}/app/kawashiro.sql"
+    rm -f "{{ backup_dump_dir }}/langfuse/langfuse.sql"
 }
 
 trap 'log_error "Backup failed at line $LINENO"; cleanup' ERR
@@ -36,6 +39,13 @@ docker exec {{ backup_app_db_container }} \
     pg_dump -U {{ backup_app_db_user }} {{ backup_app_db_name }} \
     > "{{ backup_dump_dir }}/app/kawashiro.sql"
 log_info "App PostgreSQL dump completed"
+
+# --- Pre-backup: langfuse PostgreSQL ダンプ ---
+log_info "Starting langfuse PostgreSQL dump"
+docker exec {{ backup_langfuse_db_container }} \
+    pg_dump -U {{ backup_langfuse_db_user }} {{ backup_langfuse_db_name }} \
+    > "{{ backup_dump_dir }}/langfuse/langfuse.sql"
+log_info "Langfuse PostgreSQL dump completed"
 
 # --- autorestic バックアップ実行 ---
 log_info "Starting autorestic backup"

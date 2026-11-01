@@ -25,6 +25,7 @@
       - "{{ backup_base_dir }}/bin"
       - "{{ backup_dump_dir }}/immich"
       - "{{ backup_dump_dir }}/app"
+      - "{{ backup_dump_dir }}/langfuse"
 
 # ----- restic インストール -----
 - name: Restic のバージョンを確認
