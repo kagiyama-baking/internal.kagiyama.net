@@ -12,12 +12,13 @@
       name: '{{ traefik_network_name }}'
       state: present
 
+# compose の差分は後続のタスクの state: present が再作成で反映するので、ハンドラは発火させない。
+# 発火させると再作成の直後にもう一度再起動し、全サービスの入口が 2 回止まってしまう。
 - name: Docker-compose.yml を配置
   ansible.builtin.template:
       src: docker-compose.yml.j2
       dest: '{{ traefik_install_dir }}/docker-compose.yml'
       mode: '0600'
-  notify: Traefik を再起動
 
 - name: Traefik 静的設定を配置
   ansible.builtin.template:

@@ -3,7 +3,7 @@
 traefik_install_dir: /opt/traefik
 
 # Docker イメージ
-traefik_image: traefik:v3.6.10
+traefik_image: traefik:v3.7.17
 
 # HTTP ポート
 traefik_http_port: 80

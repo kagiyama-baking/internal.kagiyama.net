@@ -13,7 +13,7 @@ site.yml のタグは `traefik`。CD（`.github/workflows/deploy.yml` の `ALLOW
 | --- | --- | --- | --- |
 | `traefik` | `traefik`（タグは `defaults/main.yml` 参照） | 80、443 | HTTP から HTTPS へのリダイレクト、HTTPS 終端、ラベルに基づくルーティング |
 
-Docker ソケットは読み取り専用でマウントし、`no-new-privileges`・`cap_drop: ALL` とメモリ・CPU・PID の上限を設定している。ダッシュボード（`api.dashboard`）は無効。
+Docker ソケットは読み取り専用でマウントし（`:ro` でも Docker API の操作は制限されない）、`no-new-privileges`・`cap_drop: ALL` とメモリ・CPU・PID の上限を設定している。ダッシュボード（`api.dashboard`）は無効。
 各サービスが `external: true` で参照する `traefik-public` ネットワークは、このロールが作成する。
 
 ## 配置ファイル
@@ -23,7 +23,7 @@ Docker ソケットは読み取り専用でマウントし、`no-new-privileges`
 | `/opt/traefik/docker-compose.yml` | `templates/docker-compose.yml.j2` | コンテナ定義。AWS 認証情報を環境変数で渡すためパーミッションは `0600` |
 | `/opt/traefik/traefik.yml` | `templates/traefik.yml.j2` | 静的設定（エントリポイント、Docker プロバイダ、ACME） |
 
-証明書ストア `acme.json` は named volume `traefik_letsencrypt` 内（コンテナの `/letsencrypt`）に置かれる。
+証明書ストア `acme.json` は named volume 内（コンテナの `/letsencrypt`）に置かれる。Compose 上の名前は `traefik_letsencrypt` で、Docker 上の実体は `traefik_traefik_letsencrypt`。
 
 ## 主要変数
 
@@ -51,7 +51,7 @@ Docker ソケットは読み取り専用でマウントし、`no-new-privileges`
 | 開発機 | `make deploy-traefik` |
 
 Vault パスワード（`--ask-vault-pass`）が必要。sudo パスワードは不要。
-`docker-compose.yml`・`traefik.yml` のいずれかが変化すると、ハンドラで Traefik コンテナが再起動する。証明書は named volume に残るため、再起動しても再取得は発生しない。
+`traefik.yml` が変化するとハンドラで Traefik コンテナが再起動する。`docker-compose.yml` の差分（イメージタグの更新など）はハンドラを発火させず、タスク側の `state: present` がコンテナを再作成して反映する。証明書は named volume に残るため、再起動や再作成で再取得は発生しない。再起動のたびに全サービスが数秒止まり、処理中のリクエストは切れる。
 
 ## AWS IAM ポリシー（Route 53 DNS-01 チャレンジ用）
 
@@ -94,6 +94,7 @@ Vault パスワード（`--ask-vault-pass`）が必要。sudo パスワードは
 - `acme.json` は named volume にあり**バックアップ対象外**（backup ロールが扱うのは Immich の DB・ライブラリと app の DB のみ）。証明書は再取得できるため許容しているが、Let's Encrypt のレート制限があるのでボリュームを消して取り直す運用にしないこと
 - 証明書障害の調査は `docker logs traefik | grep -i acme` で更新失敗の**理由**を見るところから始める。理由が DNS だった場合、証明書や ACME 設定をいくら見ても原因に届かない。期限の実測は `openssl s_client -connect <FQDN>:443 </dev/null | openssl x509 -noout -enddate`。詳細は [docs/troubleshooting.md](../../../docs/troubleshooting.md)
 - 更新は「期限まで 30 日以内」で走る。更新済みかどうかの判定はこの閾値に合わせること
+- 起動時の警告 `aliasHeadersStrategy is not configured` は想定内。ヘッダ名の別名によるなりすましを防ぐ設定の案内で、認証やヘッダを扱うミドルウェアを使っていないこの構成には影響しない。ミドルウェアを導入するときに設定を見直す
 - `traefik-public` ネットワークはこのロールが作るため、Traefik 未デプロイの環境では他ロールの `external: true` 参照が失敗する。新規構築時は setup → coredns → traefik → 各サービスの順に流す
 - 適用先はインベントリ `ansible/inventories/local/hosts` の `local` グループ。開発機で `ansible-playbook` を直接叩くと**開発機自身**に適用されるため、サーバへ適用する場合は必ず `make deploy-traefik` を使う
 
