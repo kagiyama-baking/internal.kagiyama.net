@@ -145,6 +145,10 @@ services:
     image: "{{ observability_cadvisor_image }}"
     container_name: cadvisor
     restart: unless-stopped
+    # 外すと OOM Kill とコンテナ停止の誤検知が起きる（理由はロールの README の「運用上の注意」）
+    command:
+      - --docker_only=true
+      - --disable_metrics=disk
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
