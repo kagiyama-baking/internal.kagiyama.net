@@ -104,11 +104,14 @@
       mode: '0644'
   notify: Observability を再起動
 
+# perms: false がないと、リポジトリ側の権限をディレクトリへ写して「ダッシュボードディレクトリを作成」の
+# mode と取り合い、中身が同じでも毎回 changed になって全コンテナが再起動してしまう。
 - name: ダッシュボード JSON を配置（削除されたファイルも同期）
   ansible.posix.synchronize:
       src: '{{ role_path }}/files/dashboards/'
       dest: '{{ observability_install_dir }}/dashboards/'
       delete: true
+      perms: false
   delegate_to: '{{ inventory_hostname }}'
   notify: Observability を再起動
 
