@@ -78,13 +78,50 @@ Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pas
 
 - **イメージは 5 つともバージョンを固定し、`pull: always` に戻さない**（`defaults/main.yml` 参照）。`latest` や `3` のような可変タグと `pull: always` を組み合わせると、別の変更のデプロイで Langfuse 本体や ClickHouse の版が意図せず上がり、DB の migration まで走る。`ansible/group_vars/` や `site.yml` を変更すると全ロールがデプロイされるので、関係のない変更でも起こり得る
 - **Redis は永続化していない**。コンテナを作り直すと処理待ちのキューとキャッシュは消え、処理中のトレースがわずかに失われることがある
-- **Langfuse 本体を更新する前に PostgreSQL のダンプを取る**。起動時に PostgreSQL と ClickHouse の migration が走る。PostgreSQL はバックアップ対象外で、アプリが使うプロンプトもここにある
+- **Langfuse 本体を更新する前に PostgreSQL のダンプを取る**。起動時に PostgreSQL と ClickHouse の migration が走り、**タグを戻すだけでは切り戻せない**（[本体の切り戻し](#本体の切り戻し)を参照）
+- **`background_migrations` の未完了の行は、`envGate` 付きなら正常**。次のメジャー版に向けた履歴の移行で、`envGate` が示す環境変数を有効にするまで実行されない。`psql` で `select name, args->>'envGate', failed_at from background_migrations where finished_at is null;` を実行し、すべての行に `envGate` があり `failed_at` が空であることを確かめる
 - **シングルノード構成には `CLICKHOUSE_CLUSTER_ENABLED=false` が必須**。デフォルトは true で、その場合 LangFuse のマイグレーションが ZooKeeper / ClickHouse Keeper を要求して起動に失敗する。`.env` から外さないこと
 - **`HOSTNAME=0.0.0.0` が必要**。既定のままではコンテナ内でループバックにしか bind されず、Traefik や healthcheck から到達できない
 - **S3 バケット 3 つ（event / media / export）は `tofu/` で管理**する。バケットと IAM ユーザーを作り直した場合は `cd tofu && make secret` でアクセスキーを取得し、vault の `langfuse_vault_s3_*` を更新してから本ロールを再デプロイする。詳細は [tofu/README.md](../../../tofu/README.md) を参照
-- **PostgreSQL と ClickHouse はバックアップ対象外**。LLM のトレースは消失しても許容するという判断であり、backup ロールの location にも含めていない。トレース以外の設定（プロジェクト・API キー等）も同じ DB にあるため、消失時は再作成が必要になる点を承知しておくこと
+- **PostgreSQL と ClickHouse はバックアップ対象外**。LLM のトレースは消失しても許容するという判断であり、backup ロールの location にも含めていない。トレース以外の設定（プロジェクト・API キー・アプリが使うプロンプト等）も同じ DB にあるため、消失時は再作成が必要になる点を承知しておくこと
 - **ClickHouse のメモリチューニングは OOM 対策の結果**。`templates/clickhouse/` 配下の設定は、既定値のままでは割り当てメモリを超えて OOM Kill されたため導入した。`langfuse_clickhouse_mem_limit` を下げる場合は `max_server_memory_usage` も併せて見直すこと
 - **システムテーブルの TTL を外さない**。`query_log` などは既定で無期限に増え続け、`/opt/langfuse/clickhouse` のディスクを食い潰す
+
+### 本体の切り戻し
+
+旧版は、自分の知らない ClickHouse の migration が適用済みだと起動を拒否する（`no migration found for version N`）。そのため、タグを戻す前にデータを戻す。
+
+更新の前に、サーバの `/opt/langfuse` で次を実行して控えを取る。このダンプが PostgreSQL の唯一の控えになるので、サーバの外に持ち出さず、完了マーカーに加えて `prompts` など主要テーブルの行数も照合する。
+
+```bash
+# ClickHouse の現在の migration を控える（出力の version が切り戻しの <V>）
+docker compose exec -T langfuse-clickhouse sh -c 'clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --query "select version, dirty from schema_migrations order by sequence desc limit 1"'
+
+# ダンプを取る（権限 0600、既存のファイルは上書きしない）
+(umask 077; set -o noclobber; docker compose exec -T langfuse-database pg_dump -U langfuse langfuse > ~/langfuse-pre-vX-YYYYMMDD.sql)
+tail -n 5 ~/langfuse-pre-vX-YYYYMMDD.sql | grep 'PostgreSQL database dump complete'
+```
+
+切り戻しは同じ場所で次の順に実行する。各段階の成否を確かめてから次へ進む。
+
+```bash
+# 1. Web と Worker を止める
+docker compose stop langfuse-web langfuse-worker
+
+# 2. ClickHouse の migration を、更新後の Web イメージで更新前の版まで戻す
+docker compose run --rm --no-deps -T --entrypoint sh langfuse-web -c \
+  'cd packages/shared && migrate -source file://clickhouse/migrations/unclustered -database "${CLICKHOUSE_MIGRATION_URL}?username=${CLICKHOUSE_USER}&password=${CLICKHOUSE_PASSWORD}&database=${CLICKHOUSE_DB:-default}&x-multi-statement=true&x-migrations-table-engine=MergeTree" goto <V>'
+
+# 3. ダンプの完了マーカーを確かめてから、PostgreSQL を作り直して流し込む
+tail -n 5 ~/langfuse-pre-vX-YYYYMMDD.sql | grep 'PostgreSQL database dump complete'
+docker compose exec -T langfuse-database psql -U langfuse -d postgres -v ON_ERROR_STOP=1 -c 'DROP DATABASE langfuse' -c 'CREATE DATABASE langfuse'
+docker compose exec -T langfuse-database psql -U langfuse -d langfuse -v ON_ERROR_STOP=1 -q < ~/langfuse-pre-vX-YYYYMMDD.sql
+```
+
+最後に、更新で変えたタグだけを元の版に戻す PR をマージする（可変タグには戻さない）。CD が旧版のイメージでコンテナを作り直す。
+
+- **タグを戻す PR を先にマージしない**。旧版の Web が再起動を繰り返し、旧版の Worker が migration 後の DB で動いてしまう。手順 2 の `docker compose run` も更新後のイメージを使えなくなる
+- ダンプより後の PostgreSQL の変更（更新後に編集したプロンプトなど）は失われる。ClickHouse のトレースは残るが、down migration の内容と ClickHouse の版の差で結果が変わるので、更新のたびに手元で確かめる
 
 ## AWS IAM ポリシー（LangFuse S3 用）
 
