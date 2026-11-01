@@ -70,7 +70,7 @@ PostgreSQL と ClickHouse は `TZ=UTC` を明示している（LangFuse は UTC 
 | 開発機 | `make deploy-langfuse` |
 
 Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pass` 組み込み済み）。sudo パスワードは不要。
-`.env`・ClickHouse 設定 3 ファイルのいずれかに差分が出るとハンドラ「LangFuse を再起動」が走り、5 コンテナすべてが再起動される（イメージは更新されない）。ClickHouse の設定変更だけでも全体が再起動される点に注意。
+`.env`・ClickHouse 設定 3 ファイルのいずれかに差分が出るとハンドラ「LangFuse を再起動」が走り、5 コンテナすべてが再起動される（イメージは更新されない）。ClickHouse の設定変更だけでも全体が再起動される点に注意。この再起動は依存先の起動を待たないので、ClickHouse の起動が遅いと `langfuse-web` は接続できずに終了し、自動の再起動で復帰する。`RestartCount` が増えていても healthy に戻っていれば正常。
 `docker-compose.yml` の差分（イメージタグの更新など）はハンドラを発火させず、タスク側の `state: present` が変わったコンテナだけ再作成して反映する（理由は `tasks/main.yml` のコメントを参照）。イメージの取得は `pull: missing` で、同じタグが手元にあれば取得し直さない。
 `.env`・ClickHouse 設定とイメージタグは同じ変更に混ぜないこと。再作成の直後にハンドラが走り、起動時の migration を中断するおそれがある。
 
