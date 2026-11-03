@@ -25,8 +25,10 @@
       dest: '{{ litellm_install_dir }}/docker-compose.yml'
       mode: '0600'
 
+# イメージは proxy / DB とも版まで固定しているので、タグが変わったときだけ取得する（missing）。
+# always だと同じタグの再ビルドで digest が変わるたびに DB まで作り直される。
 - name: LiteLLM コンテナを起動
   community.docker.docker_compose_v2:
       project_src: '{{ litellm_install_dir }}'
       state: present
-      pull: always
+      pull: missing
