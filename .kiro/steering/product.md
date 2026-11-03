@@ -10,7 +10,7 @@
 - **サービスオーケストレーション (Service Orchestration)**: 各サービスは Docker Compose v2 で起動し、Traefik (Let's Encrypt + Route 53 DNS-01) が `*.internal.kagiyama.net` 配下へ HTTPS 公開する
 - **バックアップ自動化 (Backup Automation)**: autorestic / restic で重要ボリュームを AWS S3 にスケジュールバックアップ
 - **クラウド IaC (Cloud IaC)**: LangFuse 用の S3 バケット（event / media / export）と IAM ユーザーを OpenTofu で宣言的に管理（バックアップ用 S3 / IAM は tofu 管理外で、手動作成し接続情報を Vault で保持する）
-- **観測性 (Observability)**: Prometheus / Loki / Promtail / Grafana スタックを同居させ、自宅ホストおよびコンテナのメトリクス・ログを一元集約
+- **観測性 (Observability)**: Prometheus / Loki / Alloy / Grafana スタックを同居させ、自宅ホストおよびコンテナのメトリクス・ログを一元集約
 
 ## Target Use Cases
 

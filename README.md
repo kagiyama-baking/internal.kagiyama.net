@@ -109,14 +109,14 @@ graph LR
         Grafana
         Prometheus["Prometheus<br>:9090"]
         Loki["Loki<br>:3100"]
-        Promtail["Promtail"]
+        Alloy["Alloy"]
         NodeExporter["Node Exporter<br>:9100"]
         cAdvisor["cAdvisor<br>:8080"]
     end
 
     Grafana --> Prometheus
     Grafana --> Loki
-    Promtail --> Loki
+    Alloy --> Loki
 
     subgraph litellm-internal["NW:litellm-internal"]
         LiteLLMProxy

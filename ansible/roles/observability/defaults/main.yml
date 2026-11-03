@@ -8,7 +8,7 @@ observability_prometheus_image: prom/prometheus:v3.10.0
 observability_loki_image: grafana/loki:3.5.12
 observability_node_exporter_image: prom/node-exporter:v1.10.2
 observability_cadvisor_image: gcr.io/cadvisor/cadvisor:v0.55.1
-observability_promtail_image: grafana/promtail:3.5.12
+observability_alloy_image: grafana/alloy:v1.21.3
 
 # ===== ネットワーク =====
 observability_grafana_bind_address: 127.0.0.1
@@ -41,9 +41,9 @@ observability_node_exporter_cpus: 0.5
 observability_cadvisor_mem_limit: 512m
 observability_cadvisor_cpus: 0.5
 
-# ===== リソース制限: Promtail =====
-observability_promtail_mem_limit: 128m
-observability_promtail_cpus: 0.5
+# ===== リソース制限: Alloy（ログ収集） =====
+observability_alloy_mem_limit: 256m
+observability_alloy_cpus: 0.5
 
 # ===== アラート設定 =====
 # 監視対象コンテナ一覧（サービスコンテナのみ、インフラコンテナは除外）

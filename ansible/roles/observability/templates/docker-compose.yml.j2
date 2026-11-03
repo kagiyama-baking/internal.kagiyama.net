@@ -175,17 +175,21 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  promtail:
-    image: "{{ observability_promtail_image }}"
-    container_name: promtail
+  # ログ収集（Promtail の後継）。Docker API と /var/log を読んで Loki へ送る
+  alloy:
+    image: "{{ observability_alloy_image }}"
+    container_name: alloy
     restart: unless-stopped
-    command: -config.file=/etc/promtail/promtail.yml
+    # 保存先（読み出し位置）はイメージに無い /data にする。イメージの /var/lib/alloy/data は alloy ユーザー所有で、
+    # cap_drop: ALL の root（DAC_OVERRIDE なし）では書けない。HTTP（UI）はコンテナ内に閉じ、利用統計の送信は止める
+    command: ["run", "--server.http.listen-addr=127.0.0.1:12345", "--storage.path=/data", "--disable-reporting", "/etc/alloy/config.alloy"]
     volumes:
-      - ./promtail.yml:/etc/promtail/promtail.yml:ro
+      - ./config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/log:/var/log:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - promtail_positions:/positions
+      # Promtail の読み出し位置。config.alloy の legacy_positions_file が syslog / auth.log の位置を引き継ぐ（読み取り専用）
+      - promtail_positions:/positions:ro
+      - alloy_data:/data
     networks:
       - observability-internal
     depends_on:
@@ -197,8 +201,8 @@ services:
       - ALL
     cap_add:
       - DAC_READ_SEARCH
-    mem_limit: {{ observability_promtail_mem_limit }}
-    cpus: {{ observability_promtail_cpus }}
+    mem_limit: {{ observability_alloy_mem_limit }}
+    cpus: {{ observability_alloy_cpus }}
     pids_limit: 100
     logging:
       driver: "json-file"
@@ -215,4 +219,6 @@ networks:
 volumes:
   grafana_data:
   prometheus_data:
+  # Promtail 時代の読み出し位置。Alloy が読み取り専用で引き継ぐ。移行が落ち着いたら消してよい
   promtail_positions:
+  alloy_data:
