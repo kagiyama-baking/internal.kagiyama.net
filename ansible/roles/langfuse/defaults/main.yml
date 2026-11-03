@@ -17,7 +17,6 @@ langfuse_redis_image: redis:7.4.12-alpine
 # アプリケーション設定
 langfuse_nextauth_url: 'https://{{ langfuse_traefik_host }}'
 langfuse_web_port: 3000
-langfuse_worker_port: 3030
 
 # PostgreSQL 設定
 langfuse_db_username: langfuse
