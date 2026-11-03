@@ -229,8 +229,11 @@ groups:
         for: 5m
         noDataState: NoData
         execErrState: Alerting
+{# {% raw %} は直前の行の末尾に、{% endraw %} は単独の行に置く(trim_blocks は {% endraw %} の後ろの改行だけを消す)。
+   注釈は Grafana が生の値で取り込む(環境変数の展開はラベルと settings だけ)ので、$labels / $value はこのまま書く。 #}
         annotations:
-          summary: >-
-            {% raw %}ディスク {{ $labels.mountpoint }} の使用率が90%を超えています（{{ $value }}%）{% endraw %}
+          summary: >-{% raw %}
+            ディスク {{ $labels.mountpoint }} の使用率が90%を超えています（{{ $value }}%）
+{% endraw %}
         labels:
           severity: warning

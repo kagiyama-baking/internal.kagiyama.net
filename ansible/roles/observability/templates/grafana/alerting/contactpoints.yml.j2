@@ -6,12 +6,16 @@ contactPoints:
     receivers:
       - uid: slack-webhook
         type: slack
-        settings:
-          url: "{{ observability_vault_slack_webhook_url }}"
+{# {% raw %} は直前の行の末尾に、{% endraw %} は単独の行に置く。Ansible の trim_blocks は {% endraw %} の後ろの改行を消す
+   (行末に置くと次の行が連結される)一方、{% raw %} の後ろの改行は残す(単独の行に置くと空行が入る)。 #}
+        settings:{% raw %}
+          # URL は grafana.env の環境変数から Grafana が起動時に展開する（このファイルは 0644 で秘密値を置かない）
+          url: "${SLACK_WEBHOOK_URL}"
           title: >-
-            {% raw %}[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}{% endraw %}
+            [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}
           text: >-
-            {% raw %}{{ range .Alerts }}
+            {{ range .Alerts }}
             *{{ .Labels.alertname }}*
             {{ .Annotations.summary }}
-            {{ end }}{% endraw %}
+            {{ end }}
+{% endraw %}

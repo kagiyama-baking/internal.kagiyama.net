@@ -29,14 +29,14 @@ Prometheus のスクレイプ対象は自身・`node-exporter`・`cadvisor` の 
 | 配置先 | ソース | 権限 | 内容 |
 | --- | --- | --- | --- |
 | `/opt/observability/docker-compose.yml` | `templates/docker-compose.yml.j2` | 0600 | 7 コンテナの定義 |
-| `/opt/observability/grafana.env` | `templates/grafana.env.j2` | 0600 | 管理者パスワード、ルート URL、Unified Alerting の有効化 |
+| `/opt/observability/grafana.env` | `templates/grafana.env.j2` | 0600 | 管理者パスワード、Slack の Webhook URL、ルート URL、Unified Alerting の有効化 |
 | `/opt/observability/prometheus.yml` | `templates/prometheus.yml.j2` | 0644 | スクレイプ設定 |
 | `/opt/observability/loki.yml` | `templates/loki.yml.j2` | 0644 | ストレージ・保持期間・コンパクタ設定 |
 | `/opt/observability/promtail.yml` | `templates/promtail.yml.j2` | 0644 | ログ収集ジョブ |
 | `/opt/observability/grafana/datasources.yml` | `templates/grafana/datasources.yml.j2` | 0644 | Prometheus / Loki データソース |
 | `/opt/observability/grafana/dashboards.yml` | `templates/grafana/dashboards.yml.j2` | 0644 | ダッシュボードプロバイダ |
 | `/opt/observability/grafana/alerting/rules.yml` | `templates/grafana/alerting/rules.yml.j2` | 0644 | アラートルール |
-| `/opt/observability/grafana/alerting/contactpoints.yml` | `templates/grafana/alerting/contactpoints.yml.j2` | 0644 | Slack 通知先 |
+| `/opt/observability/grafana/alerting/contactpoints.yml` | `templates/grafana/alerting/contactpoints.yml.j2` | 0644 | Slack 通知先（URL は `grafana.env` の環境変数を参照） |
 | `/opt/observability/grafana/alerting/policies.yml` | `templates/grafana/alerting/policies.yml.j2` | 0644 | 通知ポリシー |
 | `/opt/observability/dashboards/` | `files/dashboards/`（`synchronize`、`delete: true`） | — | ダッシュボード JSON |
 
@@ -94,7 +94,8 @@ Vault パスワードが必要（`--ask-vault-pass`）。sudo パスワードは
 - **データソースの UID 変更は破壊的**。既存の Grafana DB に旧 UID が残った状態で `uid` を変更・追加すると Grafana が起動しなくなる。`datasources.yml.j2` の `deleteDatasources` で旧データソースを削除してから再作成する構成を崩さないこと
 - **アラートルールの `folder` 名は変更しない**。`folder: ""` は起動エラーになるうえ、フォルダ名を変えると旧フォルダにルールが残って重複する（自動クリーンアップされない）。重複が生じた場合の解消は Grafana ボリュームのリセットになる
 - **ダッシュボードは `files/dashboards/` が正**。`synchronize` の `delete: true` で同期するため、**Grafana の UI 上で編集した内容は次回デプロイで消える**。変更はリポジトリ側の JSON に対して行う
-- **Grafana コンテナは UID 472 で実行される**。プロビジョニング配下のファイルは 0644 でなければ読めない。機密を含むからと 0600 にすると Grafana が設定を読めず起動に失敗する。秘密値は `grafana.env`（0600、`env_file` で渡すのでコンテナが直接読む必要がない）に寄せている
+- **Grafana コンテナは UID 472 で実行される**。プロビジョニング配下のファイルは 0644 でなければ読めない。機密を含むからと 0600 にすると Grafana が設定を読めず起動に失敗する。秘密値は `grafana.env`（0600、`env_file` で渡すのでコンテナが直接読む必要がない）に寄せている。Slack の Webhook URL も同様で、`contactpoints.yml` には `${SLACK_WEBHOOK_URL}` とだけ書き、Grafana が起動時に `grafana.env` の値で展開する。**この変数が無いと provisioning が失敗して Grafana が起動しない**（`recipient must be specified when using the Slack chat API`）ので、`grafana.env` から消さないこと。新しい値がコンテナに届くのは起動タスクの `state: present` が env の差分で Grafana を作り直すときなので、ファイル配置の後でデプロイが失敗したら放置せず再デプロイを完了させる（ファイルだけ新しくコンテナが古いままだと、次の再起動で変数が無く起動できない）
+- **コンタクトポイントの `settings` とアラートルールのラベルでは、Grafana が `$VAR` を環境変数として展開する**。アラートルールの注釈は展開されず生の値で取り込まれるので、`{{ $labels.x }}` や `{{ $value }}` はそのまま書く（`$$` に変えると文字どおり残って壊れる）。また Ansible の `trim_blocks` は `{% endraw %}` 直後の改行を消す（`{% raw %}` の後ろの改行は残す）ので、`{% raw %}` は直前の行の末尾に、`{% endraw %}` は単独の行に置く。`{% endraw %}` を行末に置くと次の行が連結され、`text` や `labels` のキーが消える
 - `loki-init` は起動時に一度だけ動く chown 用コンテナで、正常時も `Exited (0)` のまま残る。停止しているように見えても異常ではない
 - 適用先はインベントリ `ansible/inventories/local/hosts` の `local` グループ（`localhost` への local 接続）。開発機で `ansible-playbook` を直接叩くと**開発機自身**に適用されるため、必ず `make deploy-observability` を使う
 
