@@ -4,7 +4,7 @@ Grafana・Prometheus・Loki を中心とした監視・ログ基盤をデプロ�
 
 ## 概要
 
-メトリクス収集（Prometheus + Node Exporter + cAdvisor）、ログ収集（Loki + Promtail）、可視化とアラート（Grafana）を 1 つの Compose プロジェクトとして構築する。
+メトリクス収集（Prometheus + Node Exporter + cAdvisor）、ログ収集（Loki + Alloy）、可視化とアラート（Grafana）を 1 つの Compose プロジェクトとして構築する。
 Grafana の公開 FQDN は `grafana_traefik_host`（`ansible/group_vars/local.yml`）。site.yml のタグは `observability`。
 CD（`.github/workflows/deploy.yml` の `ALLOWED_ROLES`）の対象であり、`ansible/roles/observability/` の変更が main にマージされると自動デプロイされる。
 
@@ -18,11 +18,11 @@ CD（`.github/workflows/deploy.yml` の `ALLOWED_ROLES`）の対象であり、`
 | `loki-init` | `grafana/loki` | — | 起動前に `loki-data` の所有権を Loki の UID へ変更する使い捨てコンテナ |
 | `node-exporter` | `prom/node-exporter` | 9100 | ホストの CPU・メモリ・ディスクを収集 |
 | `cadvisor` | `gcr.io/cadvisor/cadvisor` | 8080 | コンテナ単位のリソースを収集 |
-| `promtail` | `grafana/promtail` | 9080 | Docker ログ・syslog・auth.log を Loki へ転送 |
+| `alloy` | `grafana/alloy` | 12345（コンテナ内のみ） | Docker ログ・syslog・auth.log を Loki へ転送（Promtail の後継） |
 
 イメージのタグは `defaults/main.yml` を参照。
 Grafana のみ `traefik_network_name` と `observability-internal` の両方に属し、残りは `observability-internal` に閉じる。
-Prometheus のスクレイプ対象は自身・`node-exporter`・`cadvisor` の 3 つ（`templates/prometheus.yml.j2`）。Promtail は Docker のサービスディスカバリで全コンテナのログを自動収集し、加えてホストの `/var/log/syslog` と `/var/log/auth.log` を読む。
+Prometheus のスクレイプ対象は自身・`node-exporter`・`cadvisor` の 3 つ（`templates/prometheus.yml.j2`）。Alloy は Docker のサービスディスカバリで全コンテナのログを自動収集し、加えてホストの `/var/log/syslog` と `/var/log/auth.log` を読む（`templates/config.alloy.j2`）。
 
 ## 配置ファイル
 
@@ -32,7 +32,7 @@ Prometheus のスクレイプ対象は自身・`node-exporter`・`cadvisor` の 
 | `/opt/observability/grafana.env` | `templates/grafana.env.j2` | 0600 | 管理者パスワード、Slack の Webhook URL、ルート URL、Unified Alerting の有効化 |
 | `/opt/observability/prometheus.yml` | `templates/prometheus.yml.j2` | 0644 | スクレイプ設定 |
 | `/opt/observability/loki.yml` | `templates/loki.yml.j2` | 0644 | ストレージ・保持期間・コンパクタ設定 |
-| `/opt/observability/promtail.yml` | `templates/promtail.yml.j2` | 0644 | ログ収集ジョブ |
+| `/opt/observability/config.alloy` | `templates/config.alloy.j2` | 0644 | ログ収集の設定（Alloy） |
 | `/opt/observability/grafana/datasources.yml` | `templates/grafana/datasources.yml.j2` | 0644 | Prometheus / Loki データソース |
 | `/opt/observability/grafana/dashboards.yml` | `templates/grafana/dashboards.yml.j2` | 0644 | ダッシュボードプロバイダ |
 | `/opt/observability/grafana/alerting/rules.yml` | `templates/grafana/alerting/rules.yml.j2` | 0644 | アラートルール |
@@ -84,7 +84,7 @@ Vault パスワードが必要（`--ask-vault-pass`）。sudo パスワードは
 ## 運用上の注意
 
 - **新しいサービスを追加したら `observability_alert_containers` に必ず追加する**。ここへの追加を忘れると、そのコンテナが停止しても誰も気付けない。現在の対象は immich 系 4 つ、`django-api`、`frontend`、`traefik`、`portainer`、`coredns`、`langfuse-web`、`langfuse-worker` の 11 件
-- 上記の裏返しとして、**稼働中でも監視対象外のコンテナが多数ある**。`celery-worker` / `celery-beat` / `app-database` / `redis` / `litellm-proxy` / `litellm-database` / `langfuse-database` / `langfuse-clickhouse` / `langfuse-redis`、および observability スタック自身（`grafana` / `prometheus` / `loki` / `promtail` / `node-exporter`）が該当する。これらが意図的な除外なのか単に未追加なのかを示す記録は残っていない。特に Grafana 自身が落ちた場合はアラートの発報経路ごと失われる点に注意する
+- 上記の裏返しとして、**稼働中でも監視対象外のコンテナが多数ある**。`celery-worker` / `celery-beat` / `app-database` / `redis` / `litellm-proxy` / `litellm-database` / `langfuse-database` / `langfuse-clickhouse` / `langfuse-redis`、および observability スタック自身（`grafana` / `prometheus` / `loki` / `alloy` / `node-exporter`）が該当する。これらが意図的な除外なのか単に未追加なのかを示す記録は残っていない。特に Grafana 自身が落ちた場合はアラートの発報経路ごと失われる点に注意する
 - **コンテナダウン検知に `absent_over_time` を使うのは必然**。コンテナが停止すると cAdvisor は `container_last_seen` の報告自体を止めるため、`time() - container_last_seen` のような閾値比較は空の結果を返し検知できない。メトリクスの「不在」で判定する必要がある
 - **cAdvisor が止まっているあいだは、コンテナの停止を検知できない**。不在の判定はコンテナの停止と cAdvisor の停止を区別できないので、cAdvisor の取得状況（`up`）を掛けて後者では発火させず、「cAdvisor 停止」の 1 件で通知する。cAdvisor の停止中に止まったコンテナは、最後に観測されてから 10 分経ち、かつ cAdvisor の復帰から 2 分経った時点で通知される
 - **「cAdvisor 停止」は 10 分間の平均で判定する**。短い再起動では発火せず、OOM を繰り返す場合も短い復帰では解消しない。これで通知が発火と解消を往復しにくくなる
@@ -96,6 +96,9 @@ Vault パスワードが必要（`--ask-vault-pass`）。sudo パスワードは
 - **ダッシュボードは `files/dashboards/` が正**。`synchronize` の `delete: true` で同期するため、**Grafana の UI 上で編集した内容は次回デプロイで消える**。変更はリポジトリ側の JSON に対して行う
 - **Grafana コンテナは UID 472 で実行される**。プロビジョニング配下のファイルは 0644 でなければ読めない。機密を含むからと 0600 にすると Grafana が設定を読めず起動に失敗する。秘密値は `grafana.env`（0600、`env_file` で渡すのでコンテナが直接読む必要がない）に寄せている。Slack の Webhook URL も同様で、`contactpoints.yml` には `${SLACK_WEBHOOK_URL}` とだけ書き、Grafana が起動時に `grafana.env` の値で展開する。**この変数が無いと provisioning が失敗して Grafana が起動しない**（`recipient must be specified when using the Slack chat API`）ので、`grafana.env` から消さないこと。新しい値がコンテナに届くのは起動タスクの `state: present` が env の差分で Grafana を作り直すときなので、ファイル配置の後でデプロイが失敗したら放置せず再デプロイを完了させる（ファイルだけ新しくコンテナが古いままだと、次の再起動で変数が無く起動できない）
 - **コンタクトポイントの `settings` とアラートルールのラベルでは、Grafana が `$VAR` を環境変数として展開する**。アラートルールの注釈は展開されず生の値で取り込まれるので、`{{ $labels.x }}` や `{{ $value }}` はそのまま書く（`$$` に変えると文字どおり残って壊れる）。また Ansible の `trim_blocks` は `{% endraw %}` 直後の改行を消す（`{% raw %}` の後ろの改行は残す）ので、`{% raw %}` は直前の行の末尾に、`{% endraw %}` は単独の行に置く。`{% endraw %}` を行末に置くと次の行が連結され、`text` や `labels` のキーが消える
+- **ログ収集は Alloy（Promtail の後継）**。Loki に入るラベルは Promtail のときと同じ `job` / `service_name` / `container_name` / `filename` で、`templates/config.alloy.j2` はこれを変えない前提（アラートが `{job="syslog"}` を使う）。Alloy は root + `cap_drop: ALL` + `DAC_READ_SEARCH` で動かし、保存先（読み出し位置）は `alloy_data` ボリュームの `/data`。イメージの `/var/lib/alloy/data` は alloy ユーザー所有で、`DAC_OVERRIDE` を落とした root では書けないので使わない。`docker.sock` の `:ro` は Docker API の書き込みを防がない（Promtail のときと同じ既知の露出）
+- **Promtail からの移行と読み出し位置**。syslog / auth.log は `promtail_positions` ボリューム（読み取り専用）の positions を `legacy_positions_file` で引き継ぐので重複しない（初回起動のログに `successfully converted legacy positions file` が出ることを確認する）。引き継ぎに失敗した場合は `tail_from_end` が効いて末尾から読む（停止中の数秒分が欠けるだけ。ファイル全体を今の時刻で読み直すと古い `Backup failed` 行でアラートが誤発火するので、その方が安全）。Docker ログは引き継げず、初回に各コンテナのログを先頭から読み直す（Loki が 7 日より古い行を拒否するので重複は最大 7 日分で、30 日の保持で消える。アラートは syslog しか見ないので影響なし）。移行が落ち着いたら `promtail_positions` は compose のマウントと `volumes:` の宣言を外してからボリュームを消し、`grafana/promtail` イメージも消してよい
+- **起動タスクは `remove_orphans: true`**。compose から消したサービス（`promtail`）のコンテナを孤児として残さないため。このプロジェクト名で compose に無いコンテナを手で作ると消される
 - `loki-init` は起動時に一度だけ動く chown 用コンテナで、正常時も `Exited (0)` のまま残る。停止しているように見えても異常ではない
 - 適用先はインベントリ `ansible/inventories/local/hosts` の `local` グループ（`localhost` への local 接続）。開発機で `ansible-playbook` を直接叩くと**開発機自身**に適用されるため、必ず `make deploy-observability` を使う
 

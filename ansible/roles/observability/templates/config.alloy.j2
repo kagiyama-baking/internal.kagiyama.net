@@ -1,0 +1,75 @@
+// Grafana Alloy のログ収集設定（Promtail から移行）。
+// Loki に入るラベル（job / service_name / container_name / filename）は Promtail のときと同じにしてある。
+// アラート（grafana/alerting/rules.yml.j2）が {job="syslog"} を使うので、ラベルを変えないこと。
+
+// Docker コンテナのログ: Docker API で全コンテナを検出し、API 経由で読む（/var/lib/docker のマウントは不要）
+discovery.docker "docker" {
+  host             = "unix:///var/run/docker.sock"
+  refresh_interval = "30s"
+}
+
+discovery.relabel "docker" {
+  targets = discovery.docker.docker.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "service_name"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container_name"
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "docker"
+  }
+}
+
+loki.source.docker "docker" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker.output
+  forward_to = [loki.write.default.receiver]
+}
+
+// ホストの syslog と auth.log。読み出し位置は Promtail の positions（/positions、読み取り専用）から初回に引き継ぐ。
+// tail_from_end は位置が無いときだけ効く保険: 引き継ぎに失敗してもファイル全体を今の時刻で読み直さない
+// （読み直すと古い "Backup failed" 行が直近のものとして入り、アラートが誤発火する）。
+loki.source.file "syslog" {
+  targets = [{
+    __path__     = "/var/log/syslog",
+    job          = "syslog",
+    service_name = "syslog",
+  }]
+  forward_to = [loki.write.default.receiver]
+
+  file_match {
+    enabled = true
+  }
+  legacy_positions_file = "/positions/positions.yaml"
+  tail_from_end         = true
+}
+
+loki.source.file "authlog" {
+  targets = [{
+    __path__     = "/var/log/auth.log",
+    job          = "authlog",
+    service_name = "authlog",
+  }]
+  forward_to = [loki.write.default.receiver]
+
+  file_match {
+    enabled = true
+  }
+  legacy_positions_file = "/positions/positions.yaml"
+  tail_from_end         = true
+}
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
