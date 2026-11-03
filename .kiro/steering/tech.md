@@ -48,7 +48,7 @@
 
 ### Idempotency & Notification
 
-- ファイル配置（template/copy）の変更は handlers で `notify: <Role> を再起動` を発火させ、コンテナを再起動する
+- ファイル配置（template/copy）の変更は handlers で `notify: <Role> を再起動` を発火させ、コンテナを再起動する（`docker-compose.yml` の配置は例外で、起動タスクの `state: present` が反映する）
 - 直接 `docker_compose_v2` を呼ぶタスクは `state: present` を基本形にする。`pull` は可変タグ運用のロール（app）で `always`、バージョン固定タグのロール（litellm / langfuse など）では `missing` を使う
 
 ## Development Environment
