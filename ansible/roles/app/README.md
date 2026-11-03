@@ -64,13 +64,15 @@ DB データ用の `app_db_data_location` は作成しない。PostgreSQL が所
 | 開発機 | `make deploy-app` |
 
 Vault パスワードが必要（`--ask-vault-pass`）。sudo パスワードは不要。
-`nginx.conf` / `.env` / `docker-compose.yml` のいずれかに差分が出るとハンドラ `App を再起動` が発火し、Compose プロジェクト全体が `state: restarted` で再起動する。
-タスク・ハンドラともに `pull: always` を指定しており、**タグが変わらなくても毎回イメージを取得し直す**。アプリのイメージが可変タグで更新される運用のため、これがデプロイでアプリを最新にする仕組みそのものになっている。
+`nginx.conf` / `.env` に差分が出るとハンドラ `App を再起動` が発火し、Compose プロジェクト全体が `state: restarted` で再起動する。
+`docker-compose.yml` の差分（イメージタグの更新など）はハンドラを発火させず、タスク側の `state: present` が変わったコンテナだけ再作成して反映する（理由は `tasks/main.yml` のコメントを参照）。
+起動タスクは `pull: always` を指定しており、**タグが変わらなくても毎回イメージを取得し直す**。アプリのイメージが可変タグで更新される運用のため、これがデプロイでアプリを最新にする仕組みそのものになっている（ハンドラの `state: restarted` は `docker compose restart` を実行するだけで、イメージは取得しない）。
 
 ## 運用上の注意
 
 - **アプリのイメージはこのリポジトリの管轄外**。コード変更を本番へ反映する経路は「kawashiro-server 側の CI がイメージを push」→「このロールを再デプロイして pull させる」の 2 段階になる。Ansible 側だけを見てもデプロイされた中身は分からない
 - **外部 TTS サービスへの依存がある**。`app_sbv2_service_url` は Tailscale 上の別ホストを指しており、このリポジトリの管理外にある。当該ホストが停止すると**音声合成機能のみが縮退**し、他の機能は動き続ける。API のタイムアウトが増えた場合はまずこの接続先の生死を確認する
+- **DB と Redis のイメージは版まで固定する**（`defaults/main.yml` 参照）。起動タスクの `pull: always` はアプリの可変タグを追従するために必要だが、DB や Redis までメジャー版だけの可変タグにすると、タグの指す先が変わったときに関係のない変更のデプロイで版が意図せず上がり、コンテナが作り直される。更新は意図して行い、タグの変更だけの PR にする。pgvector の版を上げるときは `ALTER EXTENSION vector UPDATE` も必要
 - **DB は PostgreSQL（pgvector）であり SQLite ではない**。過去に SQLite から移行済みで、バックアップやリストアの手順も PostgreSQL 前提になっている。古い記述を見かけたら疑うこと
 - **`celery-beat` の healthcheck は `pgrep` によるプロセス生存確認**。`celery inspect ping` は全ワーカーへの broadcast であり、ワーカーではない beat は応答せずタイムアウトする。さらに `CMD-SHELL` にすると親 `sh` のコマンドラインがパターンに自己マッチするため、`CMD` 形式（exec）で `pgrep` を直接呼ぶ必要がある。この 2 点はどちらも実際に踏んだ罠なので変更しないこと
 - **`frontend` の nginx 設定には理由のある記述が 4 つある**（`templates/nginx.conf.j2`）

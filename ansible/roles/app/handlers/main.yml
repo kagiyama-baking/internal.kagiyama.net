@@ -1,6 +1,7 @@
 ---
+# restarted は docker compose restart を実行するだけで、pull を指定しても効かない。
+# イメージの取得は起動タスクの pull: always が担う。
 - name: App を再起動
   community.docker.docker_compose_v2:
       project_src: '{{ app_install_dir }}'
       state: restarted
-      pull: always
