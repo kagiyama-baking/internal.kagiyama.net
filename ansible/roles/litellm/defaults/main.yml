@@ -9,7 +9,7 @@ litellm_db_data_location: /opt/litellm/postgres
 
 # Docker イメージ（バージョン固定）
 litellm_proxy_image: litellm/litellm:v1.106.6
-litellm_db_image: postgres:17-alpine
+litellm_db_image: postgres:17.11-alpine
 
 # LiteLLM Proxy 設定
 litellm_proxy_port: 4000

@@ -18,7 +18,7 @@ site.yml のタグは `litellm`。CD（`.github/workflows/deploy.yml` の `ALLOW
 イメージのタグは `defaults/main.yml` 参照（バージョン固定）。
 ネットワークは Traefik 公開用（`traefik_network_name`／外部ネットワーク）と `litellm-internal` の 2 系統で、DB は内部ネットワークにのみ接続する。
 両コンテナとも `cap_drop: ALL` ＋ `no-new-privileges` で起動し、DB のみ PostgreSQL の起動に必要な capability を個別に付与している。
-Swagger UI / ReDoc は未認証での API 仕様露出を避けるため `NO_DOCS` / `NO_REDOC` で無効化している。
+Swagger UI / ReDoc / OpenAPI JSON は未認証での API 仕様露出を避けるため `NO_DOCS` / `NO_REDOC` / `NO_OPENAPI` で無効化している（代償は「運用上の注意」を参照）。
 
 ## 配置ファイル
 
@@ -60,7 +60,7 @@ Swagger UI / ReDoc は未認証での API 仕様露出を避けるため `NO_DOC
 
 Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pass` 組み込み済み）。sudo パスワードは不要。
 `config.yaml` に差分が出るとハンドラ「LiteLLM を再起動」が走り、`litellm-proxy` と `litellm-database` の両方が再起動される（イメージは更新されない）。
-`docker-compose.yml` の差分（イメージタグの更新など）はハンドラを発火させず、タスク側の `state: present` ＋ `pull: always` がコンテナを再作成して反映する（理由は `tasks/main.yml` のコメントを参照）。
+`docker-compose.yml` の差分（イメージタグの更新など）はハンドラを発火させず、タスク側の `state: present` が変わったコンテナだけ再作成して反映する（理由は `tasks/main.yml` のコメントを参照）。イメージの取得は `pull: missing` で、新しいタグのときだけ取得する。
 `config.yaml` とイメージタグは同じ変更に混ぜないこと。再作成の直後にハンドラが走り、起動時の migration を中断するおそれがある。
 
 ## 運用上の注意
@@ -70,6 +70,8 @@ Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pas
 - **`DATABASE_URL` に埋め込むパスワードは urlencode 必須**。`@` `:` `/` `#` `?` `&` `%` `+` などの URL 予約文字が含まれるとパーサーが壊れ、`P1013: invalid port number in database URL` のような原因の分かりにくいエラーになる。テンプレートでは URL に埋め込む箇所にのみ `urlencode` フィルタを適用しており、`POSTGRES_PASSWORD` には生の値を渡している。この非対称性を崩さないこと
 - **healthcheck に `curl` / `wget` を使わない**。LiteLLM のコンテナイメージは Wolfi ベースで `curl` も `wget` も含まないため、これらを使う healthcheck は exit 127 で常に失敗し、Traefik が unhealthy な backend を除外して外部から 404 になる。同梱の `python3` ＋ `urllib.request` で liveliness を叩く実装にしてある
 - **`config.yaml` は 0644 で配置している**。`cap_drop: ALL` ＋ `no-new-privileges` のコンテナでは root でも他ユーザー所有の 0600 ファイルを読めない（CAP_DAC_READ_SEARCH を失うため）。`config.yaml` はシークレットを含まない（master_key は環境変数参照、モデル定義は DB 管理）ので 0644 で問題ない。逆に、このファイルへシークレットを書き足してはならない
+- **`/docs` `/redoc` `/openapi.json` は無効化している**（`NO_DOCS` / `NO_REDOC` / `NO_OPENAPI`）。API 仕様（パス一覧と版番号）を認証なしで返さないため。代償として、管理 UI のキー作成フォームの「Advanced Settings」はスキーマを `/openapi.json` から取れず項目が出ない（ほかの画面と API 呼び出しには影響しない）。必要になったら `NO_OPENAPI` だけ外す
+- **イメージは proxy / DB とも版まで固定し、`pull: missing` で取得する**（`defaults/main.yml` 参照）。メジャー版だけの可変タグや `pull: always` にすると、タグの指す先が変わったときに関係のない変更のデプロイで DB の版まで意図せず上がる。更新は意図して行い、タグの変更だけの PR にする
 - **LangFuse へのトレース送信**は `config.yaml` の `success_callback` / `failure_callback` で有効化しており、認証キーは vault の `litellm_vault_langfuse_*` にある。LangFuse 側でキーをローテートしたら vault も更新すること。キーが誤っていても LLM 呼び出しは成功し、ログに `Langfuse rejected an export ... HTTP 401` が出るだけなので気づきにくい。アプリ（app ロール）も自前でトレースを送るため、同じ呼び出しのトレースが 2 件記録される
 - **起動時に DB スキーマが自動で修正される**。LiteLLM は起動時に DB とスキーマ定義の差分を検出すると、差分 SQL を自動で適用し、`_prisma_migrations` に `*_baseline_diff` という名前で記録する。スキーマ定義にない列はこの処理で消えるため、DB へ手動で DDL を当てても残らない
 - **バージョンアップの前に別名でダンプを取る**。DB はバックアップ対象外で、スキーマ移行後の切り戻しはダンプからの復元しかない。`docker exec litellm-database pg_dump -U litellm litellm` の出力を `~/litellm-pre-vX-YYYYMMDD.sql`（権限 0600）へ保存し、完了マーカー `PostgreSQL database dump complete` と主要テーブルの行数一致を確認する。ダンプにはプロンプトが含まれる。切り戻しは `litellm-proxy` を停止して DB を作り直し、ダンプを流し込んでから旧タグをデプロイする
