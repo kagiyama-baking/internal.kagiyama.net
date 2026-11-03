@@ -53,7 +53,7 @@ roles/<ロール名>/
 
 - 変数名は snake_case で `<ロール名>_` プレフィックス必須。機密変数は `<ロール名>_vault_` プレフィックス
 - Docker Compose は必ず `templates/*.j2` で管理し、`/opt/<ロール名>/` に配置する（素の compose ファイルを置かない）
-- 設定変更の反映は `notify` → ハンドラ経由で行う
+- 設定変更の反映は `notify` → ハンドラ経由で行う。ただし `docker-compose.yml` 自体の差分は起動タスクの `state: present` が再作成で反映するので、compose テンプレートの配置タスクには `notify` を付けない（再作成直後の再起動で起動時 migration を中断しないため）
 - コンテナがデータの所有権を持つディレクトリは Ansible で作らない（Compose の初回起動に任せる）。`become` が必要な操作は setup ロールに寄せる
 
 ## ロールの追加方法

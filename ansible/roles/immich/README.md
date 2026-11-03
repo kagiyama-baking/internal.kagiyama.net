@@ -55,7 +55,8 @@ PostgreSQL がデータディレクトリの所有権をコンテナ UID に変�
 | 開発機 | `make deploy-immich` |
 
 Vault パスワードが必要（`--ask-vault-pass`）。sudo パスワードは不要。
-`.env` または `docker-compose.yml` に差分が出るとハンドラ `Immich を再起動` が発火し、Compose プロジェクト全体が `state: restarted` で再起動する。
+`.env` に差分が出るとハンドラ `Immich を再起動` が発火し、Compose プロジェクト全体が `state: restarted` で再起動する。
+`docker-compose.yml` の差分（イメージタグの更新など）はハンドラを発火させず、タスク側の `state: present` が変わったコンテナだけを再作成して反映する（理由は `tasks/main.yml` のコメントを参照）。
 コンテナ起動タスクは `pull: missing` のため、**ローカルに同名タグが既にある場合はイメージを取得し直さない**。タグを変えずに中身だけ更新されたイメージへ追従したいときは、手動で `docker compose pull` を実行する。
 
 ## 運用上の注意
@@ -69,7 +70,7 @@ Vault パスワードが必要（`--ask-vault-pass`）。sudo パスワードは
 - **メディアのマウント先 `/usr/src/app/upload` は変更厳禁**。公式 compose は `/data` へ移行済みだが、本リポジトリは旧来のパスを使い続けている。ここを「近代化」すると DB 内の全ファイルパスを書き換える自動マイグレーションが走り、不一致なら `InconsistentMediaLocation` で起動不能になる。バージョン更新と同時に行ってはならない。デプロイ後は `docker logs immich-server | grep -i "media location"` が **0 件**であることを確認する
 - **ダウングレードは公式非対応**。スキーマ移行後の切り戻し手段は DB ダンプからの復元しかない。だからこそ上記 4 の事前ダンプが必須になる
 - **DB は Immich 公式のベクトル拡張入りカスタムイメージ**であり、公式 `postgres` イメージへ差し替えることはできない
-- **毎デプロイでコンテナが 2 回起動する**。タスクの `state: present` による再作成の直後に、テンプレート変更の notify で発火したハンドラが `state: restarted` でもう一度全コンテナを再起動するため。ログに起動が 2 回記録されるのは**仕様であり障害ではない**
+- **`.env` に差分があるデプロイではコンテナが 2 回起動する**。タスクの `state: present` による再作成の直後に、`.env` の notify で発火したハンドラが `state: restarted` でもう一度全コンテナを再起動するため。ログに起動が 2 回記録されるのは**仕様であり障害ではない**。イメージタグだけの更新では再作成の 1 回で済み、起動時の migration を中断しない（compose タスクに notify を付けない理由）。`.env` の変更とイメージタグの更新は同じ変更に混ぜないこと
 - 適用先はインベントリ `ansible/inventories/local/hosts` の `local` グループ（`localhost` への local 接続）。開発機で `ansible-playbook` を直接叩くと**開発機自身**に適用されるため、必ず `make deploy-immich` を使う
 
 ## 関連ドキュメント
