@@ -35,9 +35,10 @@ loki.source.docker "docker" {
   forward_to = [loki.write.default.receiver]
 }
 
-// ホストの syslog と auth.log。読み出し位置は Promtail の positions（/positions、読み取り専用）から初回に引き継ぐ。
-// tail_from_end は位置が無いときだけ効く保険: 引き継ぎに失敗してもファイル全体を今の時刻で読み直さない
-// （読み直すと古い "Backup failed" 行が直近のものとして入り、アラートが誤発火する）。
+// ホストの syslog と auth.log。読み出し位置は --storage.path（/data、alloy_data ボリューム）の positions に保存する。
+// tail_from_end は、位置が無いか読めないとき（ボリュームを失ったときなど）にファイルを開く最初の 1 回だけ効く保険:
+// ファイル全体を今の時刻で読み直さず、末尾から読む（読み直すと古い "Backup failed" 行が直近のものとして入り、
+// アラートが誤発火する）。動作中のローテーションでは新しいファイルを先頭から読むので、行は欠けない。
 loki.source.file "syslog" {
   targets = [{
     __path__     = "/var/log/syslog",
@@ -49,8 +50,7 @@ loki.source.file "syslog" {
   file_match {
     enabled = true
   }
-  legacy_positions_file = "/positions/positions.yaml"
-  tail_from_end         = true
+  tail_from_end = true
 }
 
 loki.source.file "authlog" {
@@ -64,8 +64,7 @@ loki.source.file "authlog" {
   file_match {
     enabled = true
   }
-  legacy_positions_file = "/positions/positions.yaml"
-  tail_from_end         = true
+  tail_from_end = true
 }
 
 loki.write "default" {
