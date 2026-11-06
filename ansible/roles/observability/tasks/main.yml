@@ -63,12 +63,6 @@
       mode: '0644'
   notify: Observability を再起動
 
-# ログ収集は Promtail から Alloy へ移行した。旧設定ファイルを残さない
-- name: 旧 Promtail 設定を削除
-  ansible.builtin.file:
-      path: '{{ observability_install_dir }}/promtail.yml'
-      state: absent
-
 - name: Grafana データソース設定を配置
   ansible.builtin.template:
       src: grafana/datasources.yml.j2
@@ -121,7 +115,7 @@
   delegate_to: '{{ inventory_hostname }}'
   notify: Observability を再起動
 
-# remove_orphans: compose から消したサービス（promtail）のコンテナを孤児として残さない
+# remove_orphans: compose から消したサービスのコンテナを孤児として残さない（Promtail → Alloy の置き換えで必要になった）
 - name: Observability コンテナを起動
   community.docker.docker_compose_v2:
       project_src: '{{ observability_install_dir }}'

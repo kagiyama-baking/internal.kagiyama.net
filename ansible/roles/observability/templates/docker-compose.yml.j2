@@ -187,8 +187,6 @@ services:
       - ./config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/log:/var/log:ro
-      # Promtail の読み出し位置。config.alloy の legacy_positions_file が syslog / auth.log の位置を引き継ぐ（読み取り専用）
-      - promtail_positions:/positions:ro
       - alloy_data:/data
     networks:
       - observability-internal
@@ -219,6 +217,4 @@ networks:
 volumes:
   grafana_data:
   prometheus_data:
-  # Promtail 時代の読み出し位置。Alloy が読み取り専用で引き継ぐ。移行が落ち着いたら消してよい
-  promtail_positions:
   alloy_data:
