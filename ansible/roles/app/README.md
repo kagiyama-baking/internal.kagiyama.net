@@ -72,7 +72,9 @@ Vault パスワードが必要（`--ask-vault-pass`）。sudo パスワードは
 
 - **アプリのイメージはこのリポジトリの管轄外**。コード変更を本番へ反映する経路は「kawashiro-server 側の CI がイメージを push」→「このロールを再デプロイして pull させる」の 2 段階になる。Ansible 側だけを見てもデプロイされた中身は分からない
 - **外部 TTS サービスへの依存がある**。`app_sbv2_service_url` は Tailscale 上の別ホストを指しており、このリポジトリの管理外にある。当該ホストが停止すると**音声合成機能のみが縮退**し、他の機能は動き続ける。API のタイムアウトが増えた場合はまずこの接続先の生死を確認する
-- **DB と Redis のイメージは版まで固定する**（`defaults/main.yml` 参照）。起動タスクの `pull: always` はアプリの可変タグを追従するために必要だが、DB や Redis までメジャー版だけの可変タグにすると、タグの指す先が変わったときに関係のない変更のデプロイで版が意図せず上がり、コンテナが作り直される。更新は意図して行い、タグの変更だけの PR にする。pgvector の版を上げるときは `ALTER EXTENSION vector UPDATE` も必要
+- **DB と Redis のイメージは版まで固定し、DB はダイジェストまで固定する**（`defaults/main.yml` 参照）。起動タスクの `pull: always` はアプリの可変タグを追従するために必要だが、DB や Redis までメジャー版だけの可変タグにすると、タグの指す先が変わったときに関係のない変更のデプロイで版が意図せず上がり、コンテナが作り直される。pgvector のタグは版を含んでいても、その版が最新の間は PostgreSQL のマイナー更新のたびに同じ名前で作り直されるので、DB はダイジェストで止める。更新は意図して行い、イメージの変更だけの PR にする
+- **DB の更新は、事前に別名でダンプを取ってから行う**。`docker exec app-database sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"'` の出力を `~/app-pre-<版>-YYYYMMDD.sql`（権限 0600）へ保存し、完了マーカー `PostgreSQL database dump complete` を確認する。マイナー更新ならデータの形式は変わらないので、切り戻しは PR を revert して旧イメージに戻すだけでよい。pgvector の版が上がったら、デプロイ後に `ALTER EXTENSION vector UPDATE` を行う（取り消す手順は無い。旧イメージに戻して動くかは版の組み合わせによるので、手元で確かめてから行う）。最後の手段は、`django-api` と `celery-*` を止めて DB を作り直し、ダンプを流し込む
+- **DB のイメージはベースの Debian を明示したタグを使う**。ベースの Debian が変わると glibc が変わり、照合順序（en_US.utf8）に依存する文字列の索引の並びが変わり得る。変えるときは別の作業にして、該当する索引を `REINDEX` してから各 DB で `ALTER DATABASE ... REFRESH COLLATION VERSION` を行う。この DB は照合順序の版（`pg_database.datcollversion`）が空なので、glibc が変わっても PostgreSQL は警告を出さない
 - **DB は PostgreSQL（pgvector）であり SQLite ではない**。過去に SQLite から移行済みで、バックアップやリストアの手順も PostgreSQL 前提になっている。古い記述を見かけたら疑うこと
 - **`celery-beat` の healthcheck は `pgrep` によるプロセス生存確認**。`celery inspect ping` は全ワーカーへの broadcast であり、ワーカーではない beat は応答せずタイムアウトする。さらに `CMD-SHELL` にすると親 `sh` のコマンドラインがパターンに自己マッチするため、`CMD` 形式（exec）で `pgrep` を直接呼ぶ必要がある。この 2 点はどちらも実際に踏んだ罠なので変更しないこと
 - **`frontend` の nginx 設定には理由のある記述が 4 つある**（`templates/nginx.conf.j2`）

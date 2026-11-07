@@ -19,10 +19,10 @@ app_sbv2_service_url: http://100.72.34.43:5000
 app_django_mem_limit: 512m
 app_django_cpus: 1.0
 
-# PostgreSQL データベース設定（pgvector の版まで固定。pull: always なので可変タグだとデプロイのたびに置き換わる。
-# このタグの PostgreSQL マイナーは最終ビルドの版で止まるので、上げるときは pgvector の版ごと上げて
-# ALTER EXTENSION vector UPDATE も行う）
-app_db_image: pgvector/pgvector:0.8.2-pg17
+# PostgreSQL データベース設定（pgvector 拡張つき）。ダイジェストまで固定し、ベースの Debian を明示したタグを使う。
+# 理由と更新・切り戻しの手順は README の「運用上の注意」。ダイジェストは折り返せないので、この 1 行だけ行の長さの検査を外す
+# yamllint disable-line rule:line-length
+app_db_image: pgvector/pgvector:0.8.7-pg17-bookworm@sha256:7d0a41464797aeb9862dfdc0bbf1526b82cfd324cdd8036df19e3545f4a9ccb8
 app_db_username: kawashiro
 app_db_database_name: kawashiro
 app_db_data_location: /opt/app/postgres
