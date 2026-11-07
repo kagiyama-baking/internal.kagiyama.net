@@ -70,7 +70,7 @@ Vault パスワードが必要（`--ask-vault-pass`）。sudo パスワードは
 
 ## 運用上の注意
 
-- **アプリのイメージはこのリポジトリの管轄外**。コード変更を本番へ反映する経路は「kawashiro-server 側の CI がイメージを push」→「このロールを再デプロイして pull させる」の 2 段階になる。Ansible 側だけを見てもデプロイされた中身は分からない
+- **アプリのイメージはこのリポジトリの管轄外で、リリースは kawashiro-server 側の CI/CD が行う**。向こうのリリースのワークフローが `release` タグを付け替えたあと、SSH でサーバに入り、このロールが置いた compose を使って django-api と frontend だけを pull し、アプリの 4 つのコンテナ（django-api・celery-worker・celery-beat・frontend）を作り直す。compose ファイル、DB、Redis には触れない。Ansible 側だけを見てもデプロイされた中身は分からない。このロールのデプロイも起動タスクの `pull: always` で `release` を取り直すので、両者を同時に走らせない
 - **外部 TTS サービスへの依存がある**。`app_sbv2_service_url` は Tailscale 上の別ホストを指しており、このリポジトリの管理外にある。当該ホストが停止すると**音声合成機能のみが縮退**し、他の機能は動き続ける。API のタイムアウトが増えた場合はまずこの接続先の生死を確認する
 - **DB と Redis のイメージは版まで固定し、DB はダイジェストまで固定する**（`defaults/main.yml` 参照）。起動タスクの `pull: always` はアプリの可変タグを追従するために必要だが、DB や Redis までメジャー版だけの可変タグにすると、タグの指す先が変わったときに関係のない変更のデプロイで版が意図せず上がり、コンテナが作り直される。pgvector のタグは版を含んでいても、その版が最新の間は PostgreSQL のマイナー更新のたびに同じ名前で作り直されるので、DB はダイジェストで止める。更新は意図して行い、イメージの変更だけの PR にする
 - **DB の更新は、事前に別名でダンプを取ってから行う**。`docker exec app-database sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"'` の出力を `~/app-pre-<版>-YYYYMMDD.sql`（権限 0600）へ保存し、完了マーカー `PostgreSQL database dump complete` を確認する。マイナー更新ならデータの形式は変わらないので、切り戻しは PR を revert して旧イメージに戻すだけでよい。pgvector の版が上がったら、デプロイ後に `ALTER EXTENSION vector UPDATE` を行う（取り消す手順は無い。旧イメージに戻して動くかは版の組み合わせによるので、手元で確かめてから行う）。最後の手段は、`django-api` と `celery-*` を止めて DB を作り直し、ダンプを流し込む
