@@ -31,8 +31,8 @@ app_db_data_location: /opt/app/postgres
 app_db_mem_limit: 256m
 app_db_cpus: 0.5
 
-# Redis 設定（版まで固定）
-app_redis_image: redis:7.4.12-alpine
+# Redis 設定（ダイジェストまで固定。理由は README の「運用上の注意」）
+app_redis_image: redis:7.4.12-alpine@sha256:c5d34a98396a4775e223c74e929162c35c5a2182901ba26b50ade939941ce14b
 
 # Celery ワーカー設定
 app_celery_worker_concurrency: 2
