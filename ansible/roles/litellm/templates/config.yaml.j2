@@ -14,4 +14,8 @@ litellm_settings:
   failure_callback: ["langfuse"]
 
 general_settings:
+  # 管理画面への環境変数の資格情報によるログインを止める（UI_PASSWORD が無いと master key がそのまま管理者のパスワードになる）。
+  # 管理画面には DB のパスワード付き管理者で入る。master key による API の利用は変わらない。
+  # 締め出されたら master key で API から管理でき、この行を外して再起動すれば戻る（README の「運用上の注意」）
+  disable_env_credential_login: true
   master_key: "os.environ/LITELLM_MASTER_KEY"
