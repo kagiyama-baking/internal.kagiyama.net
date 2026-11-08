@@ -230,7 +230,7 @@ GitHub Actions で 3 本のワークフローを運用しています。
 | --- | --- | --- |
 | [Ansible Lint](.github/workflows/ansible_lint.yml) | `main` への PR（`ansible/**`・lint 設定の変更時。md は除外） | `yamllint` + `ansible-lint` |
 | [Deploy](.github/workflows/deploy.yml) | `main` への push（`ansible/**` の変更時。md は除外）、手動実行（ロール指定可） | 変更されたロールを検知し、Tailscale 経由で SSH 接続して自動デプロイ |
-| [Docs Check](.github/workflows/docs_check.yml) | `main` への PR（ドキュメント・`ansible/**`・`Makefile` 等の変更時）、手動実行 | ドキュメントとコードの整合性 9 項目を検証。ローカルでは `uv run python scripts/check_docs.py` |
+| [Docs Check](.github/workflows/docs_check.yml) | `main` への PR（ドキュメント・`ansible/**`・`Makefile` 等の変更時）、手動実行 | ドキュメントとコードの整合性 10 項目を検証。ローカルでは `uv run python scripts/check_docs.py` |
 
 ### CD の変更検知ロジック
 

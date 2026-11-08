@@ -15,6 +15,7 @@
   C7: tofu/README.md に tofu/Makefile の全ターゲットが出現する
   C8: Git 管理下の全 Markdown の相対リンク先ファイルが実在する
   C9: observability_alert_containers の各要素が compose テンプレートの container_name に実在する
+  C10: tasks/secrets_check.yml を持つロールで、検査の一覧がテンプレートで使う vault の値と一致する
 """
 
 from __future__ import annotations
@@ -184,6 +185,22 @@ def check_c9_alert_containers() -> list[str]:
     return errors
 
 
+def check_c10_secrets_check_lists() -> list[str]:
+    errors = []
+    for check_file in sorted((ROOT / "ansible" / "roles").glob("*/tasks/secrets_check.yml")):
+        role_dir = check_file.parent.parent
+        name = re.escape(role_dir.name)
+        used: set[str] = set()
+        for template in (role_dir / "templates").rglob("*.j2"):
+            used |= set(re.findall(rf"\b({name}_vault_[a-z0-9_]+)", template.read_text()))
+        listed = set(re.findall(rf"'({name}_vault_[a-z0-9_]+)'\s*:", check_file.read_text()))
+        for var in sorted(used - listed):
+            errors.append(f"[C10] {check_file}: テンプレートで使う {var} が検査の一覧に無い / 期待: 一覧に追加")
+        for var in sorted(listed - used):
+            errors.append(f"[C10] {check_file}: 一覧の {var} がテンプレートで使われていない / 期待: 一覧から削除")
+    return errors
+
+
 CHECKS = [
     check_c1_site_tags,
     check_c2_make_targets,
@@ -194,6 +211,7 @@ CHECKS = [
     check_c7_tofu_readme_targets,
     check_c8_markdown_links,
     check_c9_alert_containers,
+    check_c10_secrets_check_lists,
 ]
 
 
