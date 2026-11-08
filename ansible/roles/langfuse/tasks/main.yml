@@ -56,8 +56,34 @@
       dest: '{{ langfuse_install_dir }}/docker-compose.yml'
       mode: '0600'
 
+# Redis は永続化しないので、作り直すとキューが消え、worker は再起動するまで接続のタイムアウトを出し続ける。
+# 起動タスクの前後で Redis のコンテナの ID と起動時刻を比べ、変わっていたら worker だけを再起動する
+# （compose の出力の読み取りに頼らず、Docker の情報で比べる）
+- name: Redis のコンテナを調べる（起動前）
+  community.docker.docker_container_info:
+      name: langfuse-redis
+  register: langfuse_redis_before
+
 - name: LangFuse コンテナを起動
   community.docker.docker_compose_v2:
       project_src: '{{ langfuse_install_dir }}'
       state: present
       pull: missing
+
+- name: Redis のコンテナを調べる（起動後）
+  community.docker.docker_container_info:
+      name: langfuse-redis
+  register: langfuse_redis_after
+
+- name: Redis を作り直したら worker を再起動する
+  community.docker.docker_compose_v2:
+      project_src: '{{ langfuse_install_dir }}'
+      services:
+          - langfuse-worker
+      state: restarted
+  # 作り直し（ID）と再起動（起動時刻）のどちらでも worker を再起動する。初回で Redis が無かった場合も再起動になる（無害）
+  when: >-
+      ((langfuse_redis_before.container | default({}, true)).get('Id', ''),
+       (langfuse_redis_before.container | default({}, true)).get('State', {}).get('StartedAt', ''))
+      != ((langfuse_redis_after.container | default({}, true)).get('Id', ''),
+       (langfuse_redis_after.container | default({}, true)).get('State', {}).get('StartedAt', ''))
