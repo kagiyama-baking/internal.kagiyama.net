@@ -12,7 +12,9 @@ langfuse_web_image: docker.langfuse.com/langfuse/langfuse:4.72.0
 langfuse_worker_image: docker.langfuse.com/langfuse/langfuse-worker:4.72.0
 langfuse_db_image: postgres:17.11
 langfuse_clickhouse_image: clickhouse/clickhouse-server:26.3.62.3
-langfuse_redis_image: redis:7.4.12-alpine
+# Redis はダイジェストまで固定する（app の Redis と同じタグ。版のタグだけだと、上流の作り直しを app の pull が
+# 取り込んだときにサーバのタグの中身がずれ、次の langfuse のデプロイで Redis が作り直される。README 参照）
+langfuse_redis_image: redis:7.4.12-alpine@sha256:c5d34a98396a4775e223c74e929162c35c5a2182901ba26b50ade939941ce14b
 
 # アプリケーション設定
 langfuse_nextauth_url: 'https://{{ langfuse_traefik_host }}'

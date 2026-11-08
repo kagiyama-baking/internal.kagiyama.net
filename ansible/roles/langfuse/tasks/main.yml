@@ -56,8 +56,36 @@
       dest: '{{ langfuse_install_dir }}/docker-compose.yml'
       mode: '0600'
 
+# 起動タスクの結果（失敗したときも）にはコンテナの起動コマンドが載り、Redis の --requirepass のパスワードが
+# 公開の CI のログに出る。起動タスク・コンテナを調べるタスク・ハンドラは no_log にする（README の「運用上の注意」）
 - name: LangFuse コンテナを起動
   community.docker.docker_compose_v2:
       project_src: '{{ langfuse_install_dir }}'
       state: present
       pull: missing
+  no_log: true
+
+# worker は Redis が作り直されたり再起動したりすると接続が戻らず、30 秒ごとにタイムアウトを出し続ける。
+# 起動タスクのあとで Redis が worker より後に起動していたら、ハンドラで worker だけを再起動する。
+# 前回の状態を覚えずに今の起動時刻だけで比べるので、途中で失敗しても次のデプロイで直る
+- name: Redis のコンテナを調べる
+  community.docker.docker_container_info:
+      name: langfuse-redis
+  register: langfuse_redis_info
+  no_log: true
+
+- name: LangFuse の worker のコンテナを調べる
+  community.docker.docker_container_info:
+      name: langfuse-worker
+  register: langfuse_worker_info
+  no_log: true
+
+- name: Redis が worker より後に起動していたら worker の再起動を予約する
+  ansible.builtin.debug:
+      msg: Redis が worker より後に起動しているので、ハンドラで worker を再起動する
+  changed_when: true
+  notify: LangFuse の worker を再起動
+  # 起動時刻は秒までで比べる（Docker の時刻は小数部の桁が揃わず、文字列のままでは正しく比べられない）
+  when: >-
+      ((langfuse_redis_info.container | default({}, true)).get('State', {}).get('StartedAt', '') | string)[:19]
+      > ((langfuse_worker_info.container | default({}, true)).get('State', {}).get('StartedAt', '') | string)[:19]
