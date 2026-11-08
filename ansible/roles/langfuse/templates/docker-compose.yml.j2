@@ -51,6 +51,11 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    # 履歴移行の 5 段階目（作業用テーブル observations_pid_tid_sorting の削除）を許可する。1〜4 段階の成功を確かめたうえで有効にした。
+    # .env ではなくここに置く: .env を変えると web と worker の作り直しに加えてハンドラが全コンテナを再起動し、
+    # worker の起動が ClickHouse の再起動と重なる。ここなら worker だけが作り直される。終わった移行は再び走らないので残してよい
+    environment:
+      LANGFUSE_BACKGROUND_MIGRATION_V4_DROP_PID_TID_SORTING_TABLES: "true"
     networks:
       - langfuse-internal
     depends_on:
