@@ -97,6 +97,7 @@ Vault パスワード（`--ask-vault-pass`）が必要。sudo パスワードは
 - 起動時の警告 `aliasHeadersStrategy is not configured` は想定内。ヘッダ名の別名によるなりすましを防ぐ設定の案内で、認証やヘッダを扱うミドルウェアを使っていないこの構成には影響しない。ミドルウェアを導入するときに設定を見直す
 - `traefik-public` ネットワークはこのロールが作るため、Traefik 未デプロイの環境では他ロールの `external: true` 参照が失敗する。新規構築時は setup → coredns → traefik → 各サービスの順に流す
 - 適用先はインベントリ `ansible/inventories/local/hosts` の `local` グループ。開発機で `ansible-playbook` を直接叩くと**開発機自身**に適用されるため、サーバへ適用する場合は必ず `make deploy-traefik` を使う
+- **秘密値に使えない文字がある**。`tasks/secrets_check.yml` がデプロイの最初に調べ、当てはまる変数名だけを出して止める（値は出さない）。使えない文字と理由、vault への書き方は [ansible/README.md の「秘密値に使えない文字」](../../README.md#秘密値に使えない文字) を参照
 
 ## 関連ドキュメント
 

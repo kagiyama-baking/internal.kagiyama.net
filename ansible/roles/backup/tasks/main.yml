@@ -8,6 +8,9 @@
   ansible.builtin.include_vars:
       file: vault.yml
 
+- name: 秘密値の文字を確かめる
+  ansible.builtin.import_tasks: secrets_check.yml
+
 # ----- 共通変数 -----
 - name: アーキテクチャを判定
   ansible.builtin.set_fact:
@@ -153,7 +156,7 @@
           {{ backup_base_dir }}/bin/autorestic check
           -c "{{ backup_base_dir }}/.autorestic.yml"
   environment:
-      PATH: "{{ backup_base_dir }}/bin:{{ ansible_env.PATH }}"
+      PATH: "{{ backup_base_dir }}/bin:{{ ansible_facts['env']['PATH'] }}"
   register: backup_autorestic_check
   changed_when: >-
       'Initializing' in backup_autorestic_check.stdout
