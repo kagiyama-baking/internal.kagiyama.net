@@ -7,6 +7,9 @@
   ansible.builtin.include_vars:
       file: vault.yml
 
+- name: 秘密値の文字を確かめる
+  ansible.builtin.import_tasks: secrets_check.yml
+
 # LiteLLM Proxy コンテナは cap_drop: [ALL] + no-new-privileges で起動するため、
 # root でも他ユーザーの 0600 ファイルを読めない。config.yaml はシークレットを含まない
 # （master_key は環境変数参照、model_list は DB 管理）ため 0644 で配置する。

@@ -7,6 +7,9 @@
   ansible.builtin.include_vars:
       file: vault.yml
 
+- name: 秘密値の文字を確かめる
+  ansible.builtin.import_tasks: secrets_check.yml
+
 # ClickHouse 設定ディレクトリ（config.d / users.d のドロップイン設定用）
 - name: ClickHouse 設定ディレクトリを作成
   ansible.builtin.file:
