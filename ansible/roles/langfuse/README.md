@@ -77,7 +77,7 @@ Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pas
 ## 運用上の注意
 
 - **URL に埋め込むパスワードは全部エンコードする**（`env.j2` の `DATABASE_URL` / `DIRECT_URL` / `REDIS_CONNECTION_STRING`）。Jinja の `urlencode` は `/` を残すので、そのあと `/` を `%2F` に置き換えている。`POSTGRES_PASSWORD` や Redis の `--requirepass` には生の値を渡す
-- **秘密値に使えない文字がある**。`tasks/secrets_check.yml` がデプロイの最初に調べ、含む変数名だけを出して止める（値は出さない）。使えないのは空白、`$`（Compose が変数として展開する）、`"` `'` `` ` `` `\`（YAML・env ファイル・シェルの引用が崩れる）、`#`（env ファイルのコメント）、`{` `}`（Ansible のテンプレート）と空の値。`+ / = @ : % ! &` などは使える。作るなら `openssl rand -hex 32`（`-base64` でもよい）。検査の一覧はテンプレートで使う vault の値と揃えておく。`ENCRYPTION_KEY` と `SALT` は作り直すと保存済みのデータや API キーが使えなくなるので、変えるときは Langfuse の手順に従う
+- **秘密値に使えない文字がある**。`tasks/secrets_check.yml` がデプロイの最初に調べ、当てはまる変数名だけを出して止める（値は出さない）。使えないのは空白、`$`（Compose が変数として展開する）、`"` `'` `` ` `` `\`（YAML・env ファイル・シェルの引用が崩れる）、`#`（env ファイルのコメント）、`{` `}`（`{{` などの並びを Ansible がテンプレートとして解釈するので括弧ごと使わない）と空の値。vault には引用符で囲んだ文字列として書く（引用符なしの数字や `yes` は YAML が数値や真偽値に変えるので、文字列でない値も止める）。`+ / = @ : % ! &` などは使える。作るなら `openssl rand -hex 32`（`ENCRYPTION_KEY` はこの 64 桁の 16 進の形が必須）。検査の一覧はテンプレートで使う vault の値と揃える（`scripts/check_docs.py` の C10 が確かめる）。`ENCRYPTION_KEY` と `SALT` は作り直すと保存済みのデータや API キーが使えなくなるので、変えるときは Langfuse の手順に従う
 - **イメージは 5 つともバージョンを固定し、`pull: always` に戻さない**（`defaults/main.yml` 参照）。`latest` や `3` のような可変タグと `pull: always` を組み合わせると、別の変更のデプロイで Langfuse 本体や ClickHouse の版が意図せず上がり、DB の migration まで走る。`ansible/group_vars/` や `site.yml` を変更すると全ロールがデプロイされるので、関係のない変更でも起こり得る
 - **Redis は永続化していない**。コンテナを作り直すと処理待ちのキューとキャッシュは消え、処理中のトレースがわずかに失われることがある
 - **Langfuse 本体を更新する前に PostgreSQL のダンプを取る**。起動時に PostgreSQL と ClickHouse の migration が走り、**タグを戻すだけでは切り戻せない**（[本体の切り戻し](#本体の切り戻し)を参照）

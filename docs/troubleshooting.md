@@ -30,7 +30,7 @@
    - **healthcheck コマンドがイメージに存在しない**（distroless / Wolfi 系は curl/wget が無い）→ `docker exec <コンテナ> which curl` 等で事前確認。python3 内蔵なら urllib で代替
    - **`cap_drop: ALL` のコンテナは他ユーザー所有の 0600 ファイルを読めない**（root でも）→ 設定ファイルは 0644 で配置し、機密は環境変数で渡す
    - **healthcheck の `localhost` が IPv6（::1）に解決**され、IPv4 のみリッスンのアプリに繋がらない → 常に `127.0.0.1` を使う
-   - **DATABASE_URL の未エンコード特殊文字**（`P1013: invalid port number` 等の間接的なエラーになる）→ パスワードは urlencode
+   - **DATABASE_URL の未エンコード特殊文字**（`P1013: invalid port number` 等の間接的なエラーになる）→ URL に埋め込むパスワードは `urlencode` し、残る `/` も `%2F` にする（[litellm ロール README](../ansible/roles/litellm/README.md) の「運用上の注意」）
    - **DB 列不足エラー**（`column ... does not exist`）は「migration 未実行」より「**後続 migration で drop された**」を疑い、migration の全履歴を見る（LiteLLM で実例。[litellm ロール README](../ansible/roles/litellm/README.md)）
 3. Traefik は unhealthy なバックエンドをルーティングから除外する。外部から 404 でもコンテナは Up のことがある
 
