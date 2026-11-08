@@ -71,7 +71,7 @@ PostgreSQL と ClickHouse は `TZ=UTC` を明示している（LangFuse は UTC 
 
 Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pass` 組み込み済み）。sudo パスワードは不要。
 `.env`・ClickHouse 設定 3 ファイルのいずれかに差分が出るとハンドラ「LangFuse を再起動」が走り、5 コンテナすべてが再起動される（イメージは更新されない）。ClickHouse の設定変更だけでも全体が再起動される点に注意。この再起動は依存先の起動を待たないので、ClickHouse の起動が遅いと `langfuse-web` は接続できずに終了し、自動の再起動で復帰する。`RestartCount` が増えていても healthy に戻っていれば正常。
-`docker-compose.yml` の差分（イメージタグの更新など）はハンドラを発火させず、タスク側の `state: present` が変わったコンテナだけ再作成して反映する（理由は `tasks/main.yml` のコメントを参照）。イメージの取得は `pull: missing` で、同じタグが手元にあれば取得し直さない。
+`docker-compose.yml` の差分（イメージタグの更新など）はハンドラを発火させず、タスク側の `state: present` が変わったコンテナだけ再作成して反映する（理由は `tasks/main.yml` のコメントを参照）。イメージの取得は `pull: missing` で、同じ参照（タグやダイジェスト）のイメージが手元にあれば取得し直さない。
 `.env`・ClickHouse 設定とイメージタグは同じ変更に混ぜないこと。再作成の直後にハンドラが走り、起動時の migration を中断するおそれがある。
 
 ## 運用上の注意
@@ -79,7 +79,8 @@ Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pas
 - **URL に埋め込むパスワードは全部エンコードする**（`env.j2` の `DATABASE_URL` / `DIRECT_URL` / `REDIS_CONNECTION_STRING`）。Jinja の `urlencode` は `/` を残すので、そのあと `/` を `%2F` に置き換えている。`POSTGRES_PASSWORD` や Redis の `--requirepass` には生の値を渡す
 - **秘密値に使えない文字がある**。`tasks/secrets_check.yml` がデプロイの最初に調べ、当てはまる変数名だけを出して止める（値は出さない）。使えないのは空白、`$`（Compose が変数として展開する）、`"` `'` `` ` `` `\`（YAML・env ファイル・シェルの引用が崩れる）、`#`（env ファイルのコメント）、`{` `}`（`{{` などの並びを Ansible がテンプレートとして解釈するので括弧ごと使わない）と空の値。vault には引用符で囲んだ文字列として書く（引用符なしの数字や `yes` は YAML が数値や真偽値に変えるので、文字列でない値も止める）。`+ / = @ : % ! &` などは使える。作るなら `openssl rand -hex 32`（`ENCRYPTION_KEY` はこの 64 桁の 16 進の形が必須）。検査の一覧はテンプレートで使う vault の値と揃える（`scripts/check_docs.py` の C10 が確かめる）。`ENCRYPTION_KEY` と `SALT` は作り直すと保存済みのデータや API キーが使えなくなるので、変えるときは Langfuse の手順に従う
 - **イメージは 5 つともバージョンを固定し、`pull: always` に戻さない**（`defaults/main.yml` 参照）。`latest` や `3` のような可変タグと `pull: always` を組み合わせると、別の変更のデプロイで Langfuse 本体や ClickHouse の版が意図せず上がり、DB の migration まで走る。`ansible/group_vars/` や `site.yml` を変更すると全ロールがデプロイされるので、関係のない変更でも起こり得る
-- **Redis は永続化していない**。コンテナを作り直すと処理待ちのキューとキャッシュは消え、処理中のトレースがわずかに失われることがある。作り直したあとの worker は Redis との接続が戻らず、再起動するまで 30 秒ごとにタイムアウトを出し続ける。そのため起動タスクの前後で Redis のコンテナの ID と起動時刻を比べ、変わっていたら worker だけを再起動している。ロールの外で Redis だけが作り直されたり再起動したりしたときは、`docker restart langfuse-worker` を手で行う
+- **Redis のデータ（キュー）は匿名ボリュームの `/data` にある**。`docker compose up` による作り直しでは引き継がれる（`down`・`rm`・`up -V` では消える）。Redis が作り直されたり再起動したりすると、worker は Redis との接続が戻らず、再起動するまで 30 秒ごとにタイムアウトを出し続ける（Compose は版によって、依存する worker を起動し直さない）。そのため起動タスクのあとで Redis が worker より後に起動していたら、ハンドラで worker だけを再起動する（前回の状態を覚えずに比べるので、途中で失敗しても次のデプロイで直る）。デプロイ以外で Redis だけが再起動したときは、次のデプロイを待たずに `docker restart langfuse-worker` を手で行う
+- **起動タスクとハンドラは `no_log`**。結果にコンテナの起動コマンドが載り、Redis の `--requirepass` のパスワードが公開の CI のログに出るため（失敗したときも同じ）。失敗の原因は、サーバで `docker compose up -d` を手で流して確かめる
 - **Redis のイメージはダイジェストまで固定する**（`defaults/main.yml` 参照）。app の Redis と同じタグを使っており、版のタグだけだと、app の `pull: always` が上流で作り直されたタグを取り込んだときにサーバのタグの中身がずれ、次の langfuse のデプロイで Redis が作り直される（実際に起きた）
 - **Langfuse 本体を更新する前に PostgreSQL のダンプを取る**。起動時に PostgreSQL と ClickHouse の migration が走り、**タグを戻すだけでは切り戻せない**（[本体の切り戻し](#本体の切り戻し)を参照）
 - **`background_migrations` の未完了の行は、`envGate` 付きなら正常**。`envGate` が示す環境変数を有効にするまで実行されない。v4 では履歴の移行（旧テーブルから `events` テーブルへの移し替え）が 4 段階目まで自動で走り、5 段階目（作業用テーブルの削除）は `LANGFUSE_BACKGROUND_MIGRATION_V4_DROP_PID_TID_SORTING_TABLES` を有効にするまで未完了で残る。`psql` で `select name, args->>'envGate', failed_at from background_migrations where finished_at is null;` を実行し、すべての行に `envGate` があり `failed_at` が空であることを確かめる

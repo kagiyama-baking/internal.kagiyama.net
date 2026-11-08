@@ -1,5 +1,16 @@
 ---
+# どちらも結果にコンテナの起動コマンド（Redis のパスワードを含む）が載るので no_log にする
 - name: LangFuse を再起動
   community.docker.docker_compose_v2:
       project_src: '{{ langfuse_install_dir }}'
       state: restarted
+  no_log: true
+
+# Redis が worker より後に起動していたとき（tasks/main.yml）に、worker だけを再起動する
+- name: LangFuse の worker を再起動
+  community.docker.docker_compose_v2:
+      project_src: '{{ langfuse_install_dir }}'
+      services:
+          - langfuse-worker
+      state: restarted
+  no_log: true
