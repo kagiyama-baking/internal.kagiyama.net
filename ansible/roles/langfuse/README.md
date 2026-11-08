@@ -92,10 +92,10 @@ Vault パスワードが必要（Makefile のターゲットに `--ask-vault-pas
 - **PostgreSQL は backup ロールの日次バックアップの対象（`langfuse-db`）、ClickHouse は対象外**。理由は [backup ロール README](../backup/README.md) の対象外の表、戻し込みの手順は [docs/backup-restore.md](../../../docs/backup-restore.md) を参照
 - **ClickHouse のメモリチューニングは OOM 対策の結果**。`templates/clickhouse/` 配下の設定は、既定値のままでは割り当てメモリを超えて OOM Kill されたため導入した。`langfuse_clickhouse_mem_limit` を下げる場合は `max_server_memory_usage` も併せて見直すこと
 - **システムテーブルの TTL を外さない**。`query_log` などは既定で無期限に増え続け、`/opt/langfuse/clickhouse` のディスクを食い潰す。`opentelemetry_span_log` は既定の設定が `engine` を直接指定していて `ttl` を併用できないので、記録そのものを止めている（`remove="1"`。Langfuse は使わない）。`crash_log` は小さく、障害の調査に使うので期限なしのまま残す。ClickHouse を更新したら、期限のないシステムテーブルが増えていないかを確かめる
-- **TTL を足しても既存のデータは消えない**。定義が変わると、ClickHouse は再起動のあとで既存のテーブルを `<テーブル>_N` に改名して作り直す。もともと TTL がなかったテーブルは改名後も期限なしで残り、記録を止めたテーブルも消えずに残る。中身が不要なら `/opt/langfuse` で次のように消す
+- **TTL を足しても既存のデータは消えない**。定義が変わると、ClickHouse は再起動のあとで既存のテーブルを `<テーブル>_N` に改名して作り直す。もともと TTL がなかったテーブルは改名後も期限なしで残る。記録を止めたテーブルは改名されず、元の名前のまま残る。中身が不要なら `/opt/langfuse` で次のように消す（`<テーブル>` は、改名で残ったものなら `_N` まで含めた名前、記録を止めたものなら元の名前）
 
     ```bash
-    docker compose exec -T langfuse-clickhouse sh -c 'clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --query "DROP TABLE system.<テーブル>_N SYNC"'
+    docker compose exec -T langfuse-clickhouse sh -c 'clickhouse-client --user "$CLICKHOUSE_USER" --password "$CLICKHOUSE_PASSWORD" --query "DROP TABLE system.<テーブル> SYNC"'
     ```
 
 ### 本体の切り戻し
