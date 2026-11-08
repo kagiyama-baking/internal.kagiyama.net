@@ -70,7 +70,7 @@ Vault パスワードが必要（`--ask-vault-pass`）。sudo パスワードは
 
 ## 運用上の注意
 
-- **秘密値に使えない文字がある**。`tasks/secrets_check.yml` がデプロイの最初に調べ、当てはまる変数名だけを出して止める（値は出さない）。使えないのは空白、`$`（Compose が変数として展開する）、`"` `'` `` ` `` `\`（YAML・env ファイル・シェルの引用が崩れる）、`#`（env ファイルのコメント）、`{` `}`（`{{` などの並びを Ansible がテンプレートとして解釈するので括弧ごと使わない）と空の値。vault には引用符で囲んだ文字列として書く（引用符なしの数字や `yes` は YAML が数値や真偽値に変えるので、文字列でない値も止める）。作るなら `openssl rand -hex 32`。Django の既定の作り方（`get_random_secret_key`）は `$` や `#` を含むので使わない。検査の一覧はテンプレートで使う vault の値と揃える（`scripts/check_docs.py` の C10 が確かめる）
+- **秘密値に使えない文字がある**。`tasks/secrets_check.yml` がデプロイの最初に調べ、当てはまる変数名だけを出して止める（値は出さない）。使えない文字と理由、vault への書き方は [ansible/README.md の「秘密値に使えない文字」](../../README.md#秘密値に使えない文字) を参照。Django の既定の作り方（`get_random_secret_key`）は `$` や `#` を含むので使わない
 - **アプリのイメージはこのリポジトリの管轄外で、リリースは kawashiro-server 側の CI/CD が行う**。向こうのリリースのワークフローが `release` タグを付け替えたあと、SSH でサーバに入り、このロールが置いた compose を使って django-api と frontend だけを pull し、アプリの 4 つのコンテナ（django-api・celery-worker・celery-beat・frontend）を作り直す。compose ファイル、DB、Redis には触れない。Ansible 側だけを見てもデプロイされた中身は分からない。このロールのデプロイも起動タスクの `pull: always` で `release` を取り直すので、両者を同時に走らせない
 - **外部 TTS サービスへの依存がある**。`app_sbv2_service_url` は Tailscale 上の別ホストを指しており、このリポジトリの管理外にある。当該ホストが停止すると**音声合成機能のみが縮退**し、他の機能は動き続ける。API のタイムアウトが増えた場合はまずこの接続先の生死を確認する
 - **DB と Redis のイメージはダイジェストまで固定する**（`defaults/main.yml` 参照）。起動タスクの `pull: always` はアプリの可変タグを追従するために必要だが、DB や Redis のタグの指す先が変わると、関係のない変更のデプロイで版が意図せず上がったり、コンテナが作り直されたりする。版を含むタグでも止まらない。pgvector のタグはその版が最新の間は PostgreSQL のマイナー更新のたびに、Redis の公式イメージのタグはベースのイメージの更新のたびに、同じ名前で作り直される。更新は意図して行い、イメージの変更だけの PR にする。Redis のデータ（Celery のブローカー兼結果バックエンド）は匿名ボリュームの `/data` にあり、`docker compose up` による作り直しでは引き継がれる。`down` や `rm` の後の `up`、`up -V`、`docker volume prune` では新しい空のボリュームになるか消える

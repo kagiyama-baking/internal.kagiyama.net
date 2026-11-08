@@ -7,6 +7,9 @@
   ansible.builtin.include_vars:
       file: vault.yml
 
+- name: 秘密値の文字を確かめる
+  ansible.builtin.import_tasks: secrets_check.yml
+
 - name: Traefik 用の Docker ネットワークを作成
   community.docker.docker_network:
       name: '{{ traefik_network_name }}'

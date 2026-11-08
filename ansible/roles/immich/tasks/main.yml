@@ -7,6 +7,9 @@
   ansible.builtin.include_vars:
       file: vault.yml
 
+- name: 秘密値の文字を確かめる
+  ansible.builtin.import_tasks: secrets_check.yml
+
 - name: 環境変数ファイルを配置
   ansible.builtin.template:
       src: env.j2

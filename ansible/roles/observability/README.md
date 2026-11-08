@@ -103,6 +103,7 @@ Vault パスワードが必要（`--ask-vault-pass`）。sudo パスワードは
 - **起動タスクは `remove_orphans: true`**。compose から消したサービスのコンテナを孤児として残さないため（Promtail → Alloy の置き換えで必要になった）。このプロジェクト名で compose に無いコンテナを手で作ると消される
 - `loki-init` は起動時に一度だけ動く chown 用コンテナで、正常時も `Exited (0)` のまま残る。停止しているように見えても異常ではない
 - 適用先はインベントリ `ansible/inventories/local/hosts` の `local` グループ（`localhost` への local 接続）。開発機で `ansible-playbook` を直接叩くと**開発機自身**に適用されるため、必ず `make deploy-observability` を使う
+- **秘密値に使えない文字がある**。`tasks/secrets_check.yml` がデプロイの最初に調べ、当てはまる変数名だけを出して止める（値は出さない）。使えない文字と理由、vault への書き方は [ansible/README.md の「秘密値に使えない文字」](../../README.md#秘密値に使えない文字) を参照。Grafana の管理者のパスワードは最初の起動で Grafana の DB に保存され、その後は環境変数を変えても変わらない。作り直すときは Grafana の CLI（`grafana cli admin reset-admin-password`）でも変える
 
 ## 関連ドキュメント
 
