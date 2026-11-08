@@ -27,6 +27,15 @@ discovery.relabel "docker" {
     target_label = "job"
     replacement  = "docker"
   }
+
+  // 最後に置く: loki.source.docker は読み出し位置を「コンテナ ID ＋ 対象のラベル一式」で保存する。
+  // IP（__address__）やネットワークのラベルを残すと、再起動で IP が変わったコンテナを位置の無い新しい対象として
+  // 先頭から読み直す。コンテナ ID（loki.source.docker が使う）と Loki に送る 3 つだけを残す（__ で始まるものは送られない）。
+  // 止まっている間の検出の更新や Alloy の再起動による読み直しは、これでは防げない（README の「運用上の注意」）
+  rule {
+    action = "labelkeep"
+    regex  = "__meta_docker_container_id|container_name|job|service_name"
+  }
 }
 
 loki.source.docker "docker" {
